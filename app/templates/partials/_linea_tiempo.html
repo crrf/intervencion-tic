@@ -1,0 +1,34 @@
+{# Historial y comentarios de un ticket, en orden cronologico. #}
+{% set nombres = {
+  "estado": "Cambio de estado",
+  "estado_fibra": "Revision de fibra",
+  "asignado_a": "Asignacion",
+  "dependencia": "Clasificacion de dependencia",
+  "foto_anverso": "Foto (anverso)",
+  "foto_reverso": "Foto (reverso)",
+  "foto": "Foto",
+  "telefono_contacto": "Telefono de contacto"
+} %}
+{% if eventos %}
+  <ul class="linea-tiempo">
+    {% for e in eventos %}
+      <li class="{{ e.tipo }}">
+        <div class="cabecera">
+          <span class="autor">{{ e.usuario.nombre_completo if e.usuario else "Sistema" }}</span>
+          <span class="cuando">{{ e.cuando | fecha }}</span>
+        </div>
+        {% if e.tipo == "comentario" %}
+          <div class="cuerpo texto">{{ e.texto }}</div>
+        {% else %}
+          <div class="cuerpo">
+            <strong>{{ nombres.get(e.campo, e.campo) }}:</strong>
+            {% if e.anterior %}<span class="suave">{{ e.anterior }}</span> &rarr; {% endif %}
+            <strong>{{ e.nuevo }}</strong>
+          </div>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <div class="vacio">Sin actividad registrada.</div>
+{% endif %}

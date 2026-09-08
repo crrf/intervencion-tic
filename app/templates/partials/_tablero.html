@@ -1,0 +1,26 @@
+{% from "partials/_macros.html" import tarjeta with context %}
+
+{% if error %}<div class="alerta">{{ error }}</div>{% endif %}
+
+<div class="tablero">
+  {% for col in columnas %}
+    <section class="columna">
+      <header>
+        <span class="insignia {{ col.estado | color_estado }}">{{ col.estado.etiqueta }}</span>
+        <span class="conteo">{{ col.total }}</span>
+      </header>
+      <div class="lista" data-grupo="{{ tipo }}" data-estado="{{ col.estado.name }}">
+        {% for t in col.tickets %}
+          {{ tarjeta(t,
+                     transiciones_de(t),
+                     url_for("tablero.mover", tipo=tipo, ticket_id=t.id),
+                     url_for("tablero.accion", tipo=tipo, ticket_id=t.id)) }}
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+</div>
+
+{% if total == 0 %}
+  <div class="vacio">No hay tickets que coincidan con el filtro actual.</div>
+{% endif %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block titulo %}Reporte historico{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1 class="mb0">Reporte historico</h1>
+    <p class="suave mb0">
+      Del {{ inicio | fecha("%d/%m/%Y") }} al {{ fin | fecha("%d/%m/%Y") }}
+    </p>
+  </div>
+  <div class="acciones">
+    <a class="btn" href="{{ url_for('reportes.bitacora', preset=preset, desde=filtros.desde, hasta=filtros.hasta) }}">
+      Ver bitacora de auditoria
+    </a>
+    <a class="btn btn-primario" href="{{ url_for('reportes.historico_csv', **filtros.como_dict()) }}">
+      Exportar CSV
+    </a>
+  </div>
+</div>
+
+<div class="panel">
+  <form method="get" action="{{ url_for('reportes.historico') }}" class="filtros">
+    <div class="campo">
+      <label for="preset">Periodo</label>
+      <select id="preset" name="preset" onchange="this.form.submit()">
+        {% for clave, etiqueta in presets.items() %}
+          <option value="{{ clave }}" {{ "selected" if preset == clave }}>{{ etiqueta }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="desde">Desde</label>
+      <input type="date" id="desde" name="desde" value="{{ filtros.desde }}">
+    </div>
+    <div class="campo">
+      <label for="hasta">Hasta</label>
+      <input type="date" id="hasta" name="hasta" value="{{ filtros.hasta }}">
+    </div>
+    <div class="campo">
+      <label for="campo_fecha">Fecha por</label>
+      <select id="campo_fecha" name="campo_fecha">
+        <option value="creado_en" {{ "selected" if filtros.campo_fecha == "creado_en" }}>Creacion</option>
+        <option value="cerrado_en" {{ "selected" if filtros.campo_fecha == "cerrado_en" }}>Cierre</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label for="tipo">Tipo</label>
+      <select id="tipo" name="tipo">
+        <option value="">Todos</option>
+        <option value="ORDEN" {{ "selected" if filtros.tipo == "ORDEN" }}>Ordenes de trabajo</option>
+        <option value="INTERRUPCION" {{ "selected" if filtros.tipo == "INTERRUPCION" }}>Interrupciones</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label>&nbsp;</label>
+      <button class="btn btn-primario" type="submit">Aplicar</button>
+    </div>
+  </form>
+</div>
+
+<div id="reporte">
+  {% include "partials/_historico.html" with context %}
+</div>
+{% endblock %}

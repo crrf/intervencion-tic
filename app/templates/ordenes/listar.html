@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block titulo %}Ordenes de trabajo{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <h1>Ordenes de trabajo</h1>
+  <div class="acciones">
+    <a class="btn" href="{{ url_for('tablero.ver', tipo='ordenes') }}">Ver en tablero</a>
+    {% if puede_gestionar() %}<a class="btn btn-primario" href="{{ url_for('ordenes.nueva') }}">Nueva orden</a>{% endif %}
+  </div>
+</div>
+
+{% if ordenes %}
+  <div class="tabla-contenedor">
+    <table>
+      <thead>
+        <tr>
+          <th>Folio</th><th>Identificador</th><th>Cliente</th><th>Titulo</th>
+          <th>Prioridad</th><th>Estado</th><th>Asignado a</th><th>Creado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in ordenes %}
+          <tr>
+            <td class="mono nowrap"><a href="{{ o.url_detalle }}">{{ o.folio }}</a></td>
+            <td class="mono">{{ o.identificador_externo }}</td>
+            <td>{{ o.nombre_cliente }}</td>
+            <td>{{ o.titulo }}</td>
+            <td><span class="insignia {{ o.prioridad | color_prioridad }}">{{ o.prioridad.etiqueta }}</span></td>
+            <td><span class="insignia {{ o.estado | color_estado }}">{{ o.estado.etiqueta }}</span></td>
+            <td class="pequeno">{{ o.asignado_a.nombre_completo if o.asignado_a else "Sin asignar" }}</td>
+            <td class="pequeno nowrap">{{ o.creado_en | fecha }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="vacio">No hay ordenes visibles para tu perfil.</div>
+{% endif %}
+{% endblock %}

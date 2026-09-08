@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block titulo %}Fibra optica{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1 class="mb0">Bandeja de fibra optica</h1>
+    <p class="suave mb0">
+      {{ total }} interrupcion{{ "es" if total != 1 }} derivada{{ "s" if total != 1 }}
+      {%- if demoradas %}
+        &middot; <strong class="texto-rojo">{{ demoradas }} sin revisar hace mas de
+        {{ minutos_demora | duracion }}</strong>
+      {%- endif %}
+    </p>
+  </div>
+  <div class="acciones">
+    <button class="btn" type="button"
+            hx-get="{{ url_for('fibra.columnas', **args) }}"
+            hx-target="#tablero" hx-swap="innerHTML">Actualizar</button>
+  </div>
+</div>
+
+<div class="panel">
+  {#
+    La busqueda va por GET para que cada consulta tenga su propia URL, y
+    ademas dispara HTMX para refrescar solo el tablero mientras se escribe.
+  #}
+  <form method="get" action="{{ url_for('fibra.bandeja') }}"
+        hx-get="{{ url_for('fibra.columnas') }}"
+        hx-target="#tablero" hx-swap="innerHTML"
+        hx-trigger="submit, change from:select, keyup changed delay:350ms from:input[name=q]"
+        hx-push-url="true"
+        class="filtros">
+
+    <input type="hidden" name="ampliada" value="{{ ampliada }}">
+
+    <div class="campo ancho">
+      <label for="q">Buscar</label>
+      <input type="search" id="q" name="q" value="{{ q }}" autofocus
+             placeholder="Folio, identificador, cliente, telefono o texto...">
+    </div>
+
+    <div class="campo">
+      <label for="orden">Ordenar por</label>
+      <select id="orden" name="orden">
+        {% for clave, etiqueta in ordenes.items() %}
+          <option value="{{ clave }}" {{ "selected" if orden == clave }}>{{ etiqueta }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="campo">
+      <label>&nbsp;</label>
+      <div class="acciones">
+        <button class="btn btn-primario" type="submit">Buscar</button>
+        {% if q or prioridad %}
+          <a class="btn" href="{{ url_for('fibra.bandeja', ampliada=ampliada or none) }}">Limpiar</a>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+
+  <div class="chips mt">
+    {% set base = args.copy() %}
+    {% set _ = base.pop("prioridad", None) %}
+    <a class="chip {{ 'activo' if not prioridad }}"
+       href="{{ url_for('fibra.bandeja', **base) }}">Toda prioridad</a>
+    {% for p in Prioridad %}
+      <a class="chip {{ 'activo' if prioridad == p.name }}"
+         href="{{ url_for('fibra.bandeja', prioridad=p.name, **base) }}">{{ p.etiqueta }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if not ampliada %}
+  <p class="tenue pequeno">
+    Marca el resultado de la revision y deja un comentario: el operador lo vera y decidira el
+    cierre. Usa el boton &#10529; de cada columna para ampliarla y revisarla completa.
+  </p>
+{% endif %}
+
+<div id="tablero"
+     hx-get="{{ url_for('fibra.columnas', **args) }}"
+     hx-trigger="every 30s[!window.__arrastrando]"
+     hx-swap="innerHTML">
+  {% include "partials/_tablero_fibra.html" with context %}
+</div>
+{% endblock %}

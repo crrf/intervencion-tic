@@ -1,0 +1,27 @@
+# Configuracion de Garage para un despliegue de un solo nodo.
+# Los secretos (rpc_secret / admin_token) NO viven aqui: se inyectan por las
+# variables de entorno GARAGE_RPC_SECRET y GARAGE_ADMIN_TOKEN desde el .env.
+
+metadata_dir = "/var/lib/garage/meta"
+data_dir     = "/var/lib/garage/data"
+db_engine    = "lmdb"
+
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+# Debe ser resoluble desde los demas contenedores de la red de compose:
+# el contenedor garage-init lo usa para hablar por RPC con este nodo.
+rpc_public_addr = "garage:3901"
+
+[s3_api]
+s3_region     = "garage"
+api_bind_addr = "[::]:3900"
+root_domain   = ".s3.garage.localhost"
+
+[s3_web]
+bind_addr   = "[::]:3902"
+root_domain = ".web.garage.localhost"
+index       = "index.html"
+
+[admin]
+api_bind_addr = "[::]:3903"

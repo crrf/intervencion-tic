@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block titulo %}Nueva orden de trabajo{% endblock %}
+
+{% block contenido %}
+<div class="encabezado"><h1>Nueva orden de trabajo</h1></div>
+
+<form method="post" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="panel">
+    <h2>Datos de la orden</h2>
+    <div class="rejilla">
+      <div class="campo">
+        <label class="obligatorio" for="identificador_externo">Identificador</label>
+        <input type="text" id="identificador_externo" name="identificador_externo"
+               value="{{ datos.identificador_externo or '' }}"
+               pattern="[A-Za-z]{2}[0-9]{6}" maxlength="8"
+               placeholder="ED123456" style="text-transform:uppercase" required>
+        <div class="ayuda">Dos letras y seis digitos, como aparece en el sistema externo.</div>
+      </div>
+      <div class="campo">
+        <label class="obligatorio" for="nombre_cliente">Nombre del cliente</label>
+        <input type="text" id="nombre_cliente" name="nombre_cliente"
+               value="{{ datos.nombre_cliente or '' }}" maxlength="160" required>
+      </div>
+      <div class="campo">
+        <label for="telefono_contacto">
+          Telefono de contacto <span class="insignia azul">Recomendado</span>
+        </label>
+        <input type="tel" id="telefono_contacto" name="telefono_contacto"
+               value="{{ datos.telefono_contacto or '' }}" maxlength="40"
+               placeholder="0414-1234567" pattern="[0-9+(). -]{7,40}">
+        <div class="ayuda">
+          No es obligatorio, pero le ahorra al operador una vuelta al sitio.
+        </div>
+      </div>
+      <div class="campo">
+        <label for="prioridad">Prioridad</label>
+        <select id="prioridad" name="prioridad">
+          {% for p in Prioridad %}
+            <option value="{{ p.name }}" {{ "selected" if (datos.prioridad or "MEDIA") == p.name }}>
+              {{ p.etiqueta }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label for="asignado_a_id">Asignar a (opcional)</label>
+        <select id="asignado_a_id" name="asignado_a_id">
+          <option value="">Dejar sin asignar</option>
+          {% for op in operadores %}
+            <option value="{{ op.id }}" {{ "selected" if datos.asignado_a_id == op.id|string }}>
+              {{ op.nombre_completo }}
+            </option>
+          {% endfor %}
+        </select>
+        <div class="ayuda">Si eliges operador, la orden nace ya asignada.</div>
+      </div>
+    </div>
+
+    <div class="campo">
+      <label class="obligatorio" for="titulo">Titulo</label>
+      <input type="text" id="titulo" name="titulo" value="{{ datos.titulo or '' }}"
+             maxlength="200" required>
+    </div>
+    <div class="campo">
+      <label for="descripcion">Descripcion</label>
+      <textarea id="descripcion" name="descripcion">{{ datos.descripcion or '' }}</textarea>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Foto de la orden</h2>
+    <p class="suave pequeno">
+      Se exigen las dos caras del documento fisico. Formatos jpg, png o webp.
+    </p>
+    <div class="rejilla-2">
+      <div class="campo">
+        <label class="obligatorio" for="foto_anverso">Anverso</label>
+        <input type="file" id="foto_anverso" name="foto_anverso" accept="image/*" required>
+      </div>
+      <div class="campo">
+        <label class="obligatorio" for="foto_reverso">Reverso</label>
+        <input type="file" id="foto_reverso" name="foto_reverso" accept="image/*" required>
+      </div>
+    </div>
+  </div>
+
+  <div class="acciones">
+    <button class="btn btn-primario" type="submit">Crear orden</button>
+    <a class="btn" href="{{ url_for('tablero.ver', tipo='ordenes') }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

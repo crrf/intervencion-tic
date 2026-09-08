@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block titulo %}{{ "Editar usuario" if usuario else "Nuevo usuario" }}{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <h1>{{ "Editar usuario" if usuario else "Nuevo usuario" }}</h1>
+  <a class="btn" href="{{ url_for('admin.usuarios') }}">Volver</a>
+</div>
+
+<form method="post" style="max-width:720px">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="panel">
+    <div class="rejilla">
+      <div class="campo">
+        <label class="obligatorio" for="usuario">Usuario</label>
+        {% if usuario %}
+          <input type="text" id="usuario" value="{{ usuario.usuario }}" disabled>
+          <div class="ayuda">El nombre de usuario no se puede cambiar.</div>
+        {% else %}
+          <input type="text" id="usuario" name="usuario" value="{{ datos.usuario or '' }}"
+                 maxlength="60" required>
+        {% endif %}
+      </div>
+      <div class="campo">
+        <label class="obligatorio" for="nombre_completo">Nombre completo</label>
+        <input type="text" id="nombre_completo" name="nombre_completo"
+               value="{{ datos.nombre_completo or (usuario.nombre_completo if usuario else '') }}"
+               maxlength="160" required>
+      </div>
+      <div class="campo">
+        <label for="email">Correo</label>
+        <input type="email" id="email" name="email"
+               value="{{ datos.email or (usuario.email if usuario else '') }}" maxlength="160">
+      </div>
+      {% if not usuario %}
+        <div class="campo">
+          <label class="obligatorio" for="password">Contrasena</label>
+          <input type="password" id="password" name="password" minlength="8"
+                 autocomplete="new-password" required>
+          <div class="ayuda">Minimo 8 caracteres.</div>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="campo">
+      <label class="obligatorio">Roles</label>
+      <div class="casillas">
+        {% for rol in RolUsuario %}
+          <label>
+            <input type="checkbox" name="roles" value="{{ rol.name }}"
+                   {{ "checked" if usuario and rol in usuario.roles }}>
+            {{ rol.etiqueta }}
+          </label>
+        {% endfor %}
+      </div>
+      <div class="ayuda">
+        Se puede marcar mas de uno. Ejemplo tipico: despachador + operador.
+      </div>
+    </div>
+  </div>
+
+  <div class="acciones">
+    <button class="btn btn-primario" type="submit">Guardar</button>
+    <a class="btn" href="{{ url_for('admin.usuarios') }}">Cancelar</a>
+  </div>
+</form>
+
+{% if usuario %}
+  {#
+    El restablecimiento va en su propio formulario, fuera del de datos: es una
+    accion con consecuencias distintas y no debe dispararse al guardar el
+    nombre o los roles.
+  #}
+  <div class="panel" style="max-width:720px;border-left:4px solid var(--ambar)">
+    <h2>Restablecer contrasena</h2>
+    <p class="suave pequeno">
+      La contrasena actual de <strong>{{ usuario.nombre_completo }}</strong> dejara de servir de
+      inmediato. {% if usuario.id != current_user.id %}Se le exigira fijar una nueva la proxima vez
+      que entre.{% endif %}
+    </p>
+
+    {% if usuario.debe_cambiar_password %}
+      <div class="aviso aviso-inline">
+        Este usuario tiene un restablecimiento pendiente: aun no ha fijado su contrasena nueva.
+      </div>
+    {% endif %}
+
+    <div class="rejilla-2">
+      <form method="post" action="{{ url_for('admin.restablecer_password', usuario_id=usuario.id) }}"
+            onsubmit="return confirm('Se generara una contrasena temporal. Continuar?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="generar" value="1">
+        <div class="campo">
+          <label>Generar una temporal</label>
+          <div class="ayuda">
+            Se muestra una sola vez al confirmar, para que se la dictes al usuario.
+          </div>
+        </div>
+        <button class="btn btn-bloque" type="submit">Generar contrasena temporal</button>
+      </form>
+
+      <form method="post" action="{{ url_for('admin.restablecer_password', usuario_id=usuario.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="campo">
+          <label for="password_nueva">O escribir una</label>
+          <input type="password" id="password_nueva" name="password" minlength="8"
+                 autocomplete="new-password" placeholder="Minimo 8 caracteres">
+        </div>
+        <button class="btn btn-bloque" type="submit">Asignar esta contrasena</button>
+      </form>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

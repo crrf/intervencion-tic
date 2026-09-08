@@ -1,0 +1,58 @@
+{% if datos.eventos %}
+  <div class="tabla-contenedor">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Ticket</th>
+          <th>Cliente</th>
+          <th>Usuario</th>
+          <th>Evento</th>
+          <th>Detalle</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in datos.eventos %}
+          <tr>
+            <td class="pequeno nowrap">{{ e.cuando | fecha }}</td>
+            <td class="mono nowrap"><a href="{{ e.url }}">{{ e.folio }}</a></td>
+            <td class="pequeno">{{ e.nombre_cliente }}</td>
+            <td class="pequeno">{{ e.usuario }}</td>
+            <td class="nowrap">
+              <span class="insignia {{ 'azul' if e.clase == 'comentario' else 'gris' }}">{{ e.evento }}</span>
+            </td>
+            <td class="pequeno">
+              {% if e.clase == "comentario" %}
+                {{ e.texto }}
+              {% else %}
+                {% if e.anterior %}<span class="suave">{{ e.anterior }}</span> &rarr; {% endif %}
+                <strong>{{ e.nuevo }}</strong>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if datos.paginas > 1 %}
+    {% set base = args.to_dict() if args else {} %}
+    {% set _ = base.pop("pagina", None) %}
+    <nav class="paginacion">
+      <span class="info">
+        {{ datos.total }} evento{{ "s" if datos.total != 1 }} &middot;
+        pagina {{ datos.pagina }} de {{ datos.paginas }}
+      </span>
+      {% if datos.pagina > 1 %}
+        <a class="btn btn-sm" href="{{ url_for('reportes.bitacora', pagina=datos.pagina - 1, **base) }}">&laquo; Anterior</a>
+      {% endif %}
+      {% if datos.pagina < datos.paginas %}
+        <a class="btn btn-sm" href="{{ url_for('reportes.bitacora', pagina=datos.pagina + 1, **base) }}">Siguiente &raquo;</a>
+      {% endif %}
+    </nav>
+  {% else %}
+    <p class="centro suave pequeno">{{ datos.total }} evento{{ "s" if datos.total != 1 }}.</p>
+  {% endif %}
+{% else %}
+  <div class="vacio">No hay actividad registrada en el periodo seleccionado.</div>
+{% endif %}

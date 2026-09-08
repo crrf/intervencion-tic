@@ -1,0 +1,31 @@
+{#
+  Las imagenes se sirven por /adjuntos/..., que valida el permiso y redirige a
+  una URL prefirmada de corta duracion: el bucket nunca queda publico.
+#}
+{% set etiquetas = {"anverso": "Anverso", "reverso": "Reverso", "foto": "Foto de la interrupcion"} %}
+{% set editable = ticket.abierto and current_user.tiene_alguno(RolUsuario.ADMIN, RolUsuario.DESPACHADOR) %}
+
+<div class="fotos">
+  {% for cual in ticket.FOTOS %}
+    {% set src = url_for('adjuntos.ver', tipo=tipo_adjunto, ticket_id=ticket.id, cual=cual) %}
+    <figure class="foto">
+      <a href="{{ src }}" target="_blank" rel="noopener">
+        <img src="{{ src }}" alt="{{ etiquetas.get(cual, cual) }} de {{ ticket.folio }}" loading="lazy">
+      </a>
+      <figcaption>
+        <span>{{ etiquetas.get(cual, cual) }}</span>
+        {% if editable %}
+          <form method="post" enctype="multipart/form-data"
+                action="{{ url_for(endpoint_foto, **{id_kwarg: ticket.id, 'cual': cual}) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="btn btn-sm" style="margin:0">
+              Cambiar
+              <input type="file" name="foto" accept="image/*" class="oculto"
+                     onchange="this.form.submit()">
+            </label>
+          </form>
+        {% endif %}
+      </figcaption>
+    </figure>
+  {% endfor %}
+</div>

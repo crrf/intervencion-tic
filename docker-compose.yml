@@ -1,0 +1,105 @@
+name: intervencion-tickets
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      # Persistencia en el HOST (bind mount), no en un volumen administrado por
+      # Docker: los datos quedan en RUTA_DATOS y se respaldan con las
+      # herramientas de siempre.
+      # Postgres 18+ espera un unico montaje en /var/lib/postgresql: coloca los
+      # datos en un subdirectorio por version mayor (necesario para pg_upgrade).
+      - ${RUTA_DATOS:-./datos}/postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  garage:
+    image: dxflrs/garage:v1.0.1
+    restart: unless-stopped
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
+    volumes:
+      - ./docker/garage.toml:/etc/garage.toml:ro
+      - ${RUTA_DATOS:-./datos}/garage/meta:/var/lib/garage/meta
+      - ${RUTA_DATOS:-./datos}/garage/data:/var/lib/garage/data
+    ports:
+      - "3900:3900"   # API S3 (la usa el navegador para las URL prefirmadas)
+      - "3903:3903"   # API de administracion
+    healthcheck:
+      # La imagen es FROM scratch: no hay shell ni curl, solo el binario.
+      test: ["CMD", "/garage", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  garage-init:
+    build:
+      context: ./docker/init
+    restart: "no"
+    depends_on:
+      garage:
+        condition: service_healthy
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
+      GARAGE_ZONE: ${GARAGE_ZONE:-dc1}
+      GARAGE_CAPACITY: ${GARAGE_CAPACITY:-10GB}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+    volumes:
+      - ./docker/garage.toml:/etc/garage.toml:ro
+      # El CLI lee el node id desde el directorio de metadatos para poder
+      # hablar por RPC con el nodo, de ahi que monte el mismo directorio.
+      - ${RUTA_DATOS:-./datos}/garage/meta:/var/lib/garage/meta
+
+  app:
+    build:
+      context: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      garage-init:
+        condition: service_completed_successfully
+    environment:
+      FLASK_ENV: ${FLASK_ENV:-production}
+      SECRET_KEY: ${SECRET_KEY}
+      DATABASE_URL: ${DATABASE_URL}
+      APP_TZ: ${APP_TZ:-UTC}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT}
+      S3_REGION: ${S3_REGION}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_URL_EXPIRACION: ${S3_URL_EXPIRACION:-900}
+      MAX_FOTO_MB: ${MAX_FOTO_MB:-8}
+      FOTO_MAX_PIXELES: ${FOTO_MAX_PIXELES:-1920}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      # Produccion: solo la cuenta de admin. Demostracion: datos de ejemplo.
+      CREAR_ADMIN: ${CREAR_ADMIN:-false}
+      ADMIN_FORZAR_CAMBIO: ${ADMIN_FORZAR_CAMBIO:-}
+      SEED_ON_START: ${SEED_ON_START:-false}
+      ADMIN_USUARIO: ${ADMIN_USUARIO:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_NOMBRE: ${ADMIN_NOMBRE:-Administrador}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@localhost}
+      SEED_PASSWORD: ${SEED_PASSWORD}
+    ports:
+      - "8000:8000"
+
+# No hay seccion `volumes:`: PostgreSQL y Garage persisten directamente en el
+# host, bajo RUTA_DATOS (por defecto ./datos). Un `docker compose down -v` ya
+# no puede borrar los datos.

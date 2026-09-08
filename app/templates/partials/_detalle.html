@@ -1,0 +1,262 @@
+{#
+  Vista de detalle compartida por ordenes e interrupciones.
+  Quien la incluye define: tipo_adjunto, endpoint_foto, endpoint_mover,
+  endpoint_comentar, endpoint_reasignar, id_kwarg y es_interrupcion.
+#}
+{% set ident = {id_kwarg: ticket.id} %}
+
+<div class="encabezado">
+  <div>
+    <h1 class="mb0">
+      <span class="mono">{{ ticket.folio }}</span>
+      <span class="insignia {{ ticket.estado | color_estado }}">{{ ticket.estado.etiqueta }}</span>
+      <span class="insignia {{ ticket.prioridad | color_prioridad }}">{{ ticket.prioridad.etiqueta }}</span>
+      {% if es_interrupcion and ticket.estado_fibra and ticket.estado.name == "DERIVADA_FIBRA" %}
+        <span class="insignia {{ ticket.estado_fibra | color_estado }}">{{ ticket.estado_fibra.etiqueta }}</span>
+      {% endif %}
+    </h1>
+    <p class="suave mb0">{{ ticket.titulo }}</p>
+  </div>
+  <div class="acciones">
+    <a class="btn" href="{{ url_for('tablero.ver', tipo=('interrupciones' if es_interrupcion else 'ordenes')) }}">
+      Volver al tablero
+    </a>
+  </div>
+</div>
+
+{% if es_interrupcion and ticket.estado.name == "DERIVADA_FIBRA" %}
+  <div class="panel" style="border-left:4px solid var(--violeta)">
+    <strong>En revision de fibra optica.</strong>
+    <span class="suave">
+      Derivada el {{ ticket.derivado_fibra_en | fecha }}.
+      {% if ticket.estado_fibra %}
+        Resultado actual: <strong>{{ ticket.estado_fibra.etiqueta }}</strong>
+        {% if ticket.agente_fibra %} por {{ ticket.agente_fibra.nombre_completo }}{% endif %}
+        {% if ticket.respuesta_fibra_en %} ({{ ticket.respuesta_fibra_en | fecha }}){% endif %}.
+      {% endif %}
+    </span>
+  </div>
+{% endif %}
+
+{% if ticket.motivo_apertura and ticket.estado.name in ["ABIERTA_CON_MOTIVO", "ABIERTA_OTRO_MOTIVO"] %}
+  <div class="alerta">Motivo por el que sigue abierto: {{ ticket.motivo_apertura }}</div>
+{% endif %}
+
+<div class="detalle">
+  <div>
+    <div class="panel">
+      <h2>Datos del ticket</h2>
+      <div class="datos">
+        <div class="dato">
+          <div class="etiqueta">Identificador externo</div>
+          <div class="valor mono">{{ ticket.identificador_externo }}</div>
+        </div>
+        <div class="dato">
+          <div class="etiqueta">Cliente</div>
+          <div class="valor">{{ ticket.nombre_cliente }}</div>
+        </div>
+        <div class="dato">
+          <div class="etiqueta">Telefono de contacto</div>
+          <div class="valor">
+            {% if ticket.telefono_contacto %}
+              <a href="tel:{{ ticket.telefono_marcable }}">{{ ticket.telefono_contacto }}</a>
+            {% else %}
+              <span class="tenue">Sin registrar</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="dato">
+          <div class="etiqueta">Creado por</div>
+          <div class="valor">{{ ticket.creado_por.nombre_completo }}</div>
+        </div>
+        <div class="dato">
+          <div class="etiqueta">Asignado a</div>
+          <div class="valor">{{ ticket.asignado_a.nombre_completo if ticket.asignado_a else "Sin asignar" }}</div>
+        </div>
+        <div class="dato">
+          <div class="etiqueta">Creado</div>
+          <div class="valor">{{ ticket.creado_en | fecha }}</div>
+        </div>
+        <div class="dato">
+          <div class="etiqueta">{{ "Cerrado" if ticket.cerrado_en else "Tiempo abierto" }}</div>
+          <div class="valor">
+            {{ ticket.cerrado_en | fecha if ticket.cerrado_en else ticket.minutos_transcurridos | duracion }}
+          </div>
+        </div>
+        {% if es_interrupcion %}
+          <div class="dato">
+            <div class="etiqueta">Dependencia</div>
+            <div class="valor">
+              {{ ticket.dependencia.etiqueta if ticket.dependencia else "Por diagnosticar" }}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      {% if ticket.descripcion %}
+        <div class="campo mt">
+          <div class="etiqueta suave pequeno">Descripcion</div>
+          <div>{{ ticket.descripcion | nl2br }}</div>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <h2>Fotos</h2>
+      {% include "partials/_fotos.html" with context %}
+    </div>
+
+    <div class="panel">
+      <h2>Actividad</h2>
+      {% include "partials/_linea_tiempo.html" with context %}
+
+      <form method="post" action="{{ url_for(endpoint_comentar, **ident) }}" class="mt">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="campo">
+          <label for="texto">Agregar comentario</label>
+          <textarea id="texto" name="texto" required
+                    placeholder="Escribe una nota visible para todos los que ven este ticket"></textarea>
+        </div>
+        <button class="btn btn-primario" type="submit">Comentar</button>
+      </form>
+    </div>
+  </div>
+
+  <aside>
+    <div class="panel">
+      <h2>Acciones</h2>
+      {% if transiciones %}
+        {% for tr in transiciones %}
+          {% if tr.pide_datos %}
+            <details class="campo">
+              <summary class="btn btn-bloque {{ 'btn-peligro' if tr.peligrosa else 'btn-primario' if loop.first }}"
+                       style="display:block;text-align:center">{{ tr.etiqueta }}</summary>
+              <form method="post" action="{{ url_for(endpoint_mover, **ident) }}" class="mt">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="transicion" value="{{ tr.clave }}">
+                {% if tr.ayuda %}<p class="tenue pequeno">{{ tr.ayuda }}</p>{% endif %}
+
+                {% if tr.exige_asignado %}
+                  <div class="campo">
+                    <label class="obligatorio">Operador</label>
+                    <select name="asignado_a_id" required>
+                      <option value="">Selecciona...</option>
+                      {% for op in operadores %}
+                        <option value="{{ op.id }}">{{ op.nombre_completo }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                {% endif %}
+
+                {% if tr.exige_dependencia %}
+                  <div class="campo">
+                    <label class="obligatorio">Dependencia</label>
+                    <select name="dependencia" required>
+                      <option value="">Clasifica la averia...</option>
+                      {% for d in Dependencia %}
+                        <option value="{{ d.name }}"
+                          {{ "selected" if ticket.dependencia and ticket.dependencia.name == d.name }}
+                          {{ "disabled" if tr.exige_capa_fisica and d.name != "CAPA_FISICA" }}>
+                          {{ d.etiqueta }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                {% endif %}
+
+                {% if tr.exige_motivo %}
+                  <div class="campo">
+                    <label class="obligatorio">Motivo</label>
+                    <input type="text" name="motivo" maxlength="240" required>
+                  </div>
+                {% endif %}
+
+                {% if tr.exige_comentario %}
+                  <div class="campo">
+                    <label class="obligatorio">Comentario</label>
+                    <textarea name="comentario" required></textarea>
+                  </div>
+                {% endif %}
+
+                <button class="btn btn-primario btn-bloque" type="submit">Confirmar</button>
+              </form>
+            </details>
+          {% else %}
+            <form method="post" action="{{ url_for(endpoint_mover, **ident) }}" class="campo">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="transicion" value="{{ tr.clave }}">
+              <button class="btn btn-bloque {{ 'btn-primario' if loop.first }}" type="submit"
+                      title="{{ tr.ayuda }}">{{ tr.etiqueta }}</button>
+            </form>
+          {% endif %}
+        {% endfor %}
+      {% else %}
+        <p class="suave pequeno mb0">
+          No hay acciones disponibles para tu perfil en el estado actual de este ticket.
+        </p>
+      {% endif %}
+    </div>
+
+    {% if es_interrupcion and ticket.abierto
+          and (current_user.tiene_rol(RolUsuario.ADMIN)
+               or (current_user.tiene_rol(RolUsuario.OPERADOR) and ticket.asignado_a_id == current_user.id)) %}
+      <div class="panel">
+        <h2>Clasificar dependencia</h2>
+        <form method="post" action="{{ url_for('interrupciones.clasificar', interrupcion_id=ticket.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="campo">
+            <select name="dependencia" required>
+              {% for d in Dependencia %}
+                <option value="{{ d.name }}"
+                  {{ "selected" if ticket.dependencia and ticket.dependencia.name == d.name }}>
+                  {{ d.etiqueta }}
+                </option>
+              {% endfor %}
+            </select>
+            <div class="ayuda">Marcala como capa fisica para poder derivarla a fibra.</div>
+          </div>
+          <button class="btn btn-bloque" type="submit">Guardar dependencia</button>
+        </form>
+      </div>
+    {% endif %}
+
+    {% if puede_gestionar() and ticket.abierto %}
+      <div class="panel {{ 'destacado' if not ticket.telefono_contacto }}">
+        <h2>Telefono de contacto</h2>
+        <form method="post" action="{{ url_for(endpoint_telefono, **ident) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="campo">
+            <input type="tel" name="telefono_contacto" maxlength="40"
+                   value="{{ ticket.telefono_contacto or '' }}"
+                   placeholder="0414-1234567" pattern="[0-9+(). -]{7,40}">
+            {% if not ticket.telefono_contacto %}
+              <div class="ayuda">
+                Recomendado: sin telefono, el operador no puede coordinar el acceso al sitio.
+              </div>
+            {% endif %}
+          </div>
+          <button class="btn btn-bloque" type="submit">Guardar telefono</button>
+        </form>
+      </div>
+    {% endif %}
+
+    {% if puede_gestionar() and ticket.abierto and ticket.asignado_a_id %}
+      <div class="panel">
+        <h2>Reasignar</h2>
+        <form method="post" action="{{ url_for(endpoint_reasignar, **ident) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="campo">
+            <select name="nuevo_operador_id" required>
+              {% for op in operadores %}
+                <option value="{{ op.id }}" {{ "selected" if op.id == ticket.asignado_a_id }}>
+                  {{ op.nombre_completo }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <button class="btn btn-bloque" type="submit">Cambiar operador</button>
+        </form>
+      </div>
+    {% endif %}
+  </aside>
+</div>

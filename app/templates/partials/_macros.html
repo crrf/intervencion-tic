@@ -1,0 +1,108 @@
+{#
+  Macros del tablero.
+
+  Se usan macros y no includes a proposito: dentro de un bucle, las variables
+  de {% set %} son locales al frame y un {% include %} no las veria. Un macro
+  recibe todo por parametro y no depende del alcance.
+#}
+
+{% macro tarjeta(t, transiciones, url_mover, url_accion, campo="estado", detallada=false, minutos_demora=240) %}
+  {#
+    `data-transiciones` lista, para ESTE usuario y ESTE ticket, los destinos que
+    el servidor ya autorizo (clave~1 si ademas exige datos en un modal). El
+    navegador solo lo usa para no intentar movimientos invalidos; el servidor
+    revalida todo al recibir el POST.
+  #}
+  {% set movibles = transiciones | selectattr("campo", "equalto", campo) | list %}
+  {% set demorada = detallada and t.minutos_en_fibra is not none
+                    and t.estado_fibra and t.estado_fibra.name == "EN_REVISION"
+                    and t.minutos_en_fibra >= minutos_demora %}
+  <article class="tarjeta p-{{ t.prioridad.name }} {{ 'arrastrable' if movibles else 'fija' }}
+                  {{ 'detallada' if detallada }} {{ 'demorada' if demorada }}"
+           data-id="{{ t.id }}"
+           data-campo="{{ campo }}"
+           data-url-mover="{{ url_mover }}"
+           data-url-accion="{{ url_accion }}"
+           data-transiciones="{% for tr in movibles %}{{ tr.clave }}~{{ 1 if tr.pide_datos else 0 }}{{ '|' if not loop.last }}{% endfor %}">
+
+    <div class="flex-entre">
+      <span class="folio mono">{{ t.folio }}</span>
+      <span class="insignia {{ t.prioridad | color_prioridad }}">{{ t.prioridad.etiqueta }}</span>
+    </div>
+    <div class="identificador mono">{{ t.identificador_externo }}</div>
+
+    <div class="titulo"><a href="{{ t.url_detalle }}">{{ t.titulo }}</a></div>
+    <div class="cliente">{{ t.nombre_cliente }}</div>
+    {% if t.telefono_contacto %}
+      <div class="cliente">
+        <a href="tel:{{ t.telefono_marcable }}" title="Llamar al cliente">
+          &#9742; {{ t.telefono_contacto }}
+        </a>
+      </div>
+    {% endif %}
+
+    {% if t.tipo.name == "INTERRUPCION" %}
+      <div class="pie">
+        {% if t.dependencia %}
+          <span class="insignia gris">{{ t.dependencia.etiqueta }}</span>
+        {% else %}
+          <span class="insignia ambar">Por diagnosticar</span>
+        {% endif %}
+        {% if t.estado_fibra and t.estado.name == "DERIVADA_FIBRA" %}
+          <span class="insignia {{ t.estado_fibra | color_estado }}">{{ t.estado_fibra.etiqueta }}</span>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if detallada %}
+      {# Vista ampliada: el agente de fibra decide sin abrir el ticket. #}
+      <div class="detalles">
+        <div><span class="etiqueta">Derivada</span> {{ t.derivado_fibra_en | fecha }}</div>
+        <div>
+          <span class="etiqueta">Esperando</span>
+          <strong class="{{ 'texto-rojo' if demorada }}">
+            {{ t.minutos_en_fibra | duracion }}
+          </strong>
+        </div>
+        {% if t.agente_fibra %}
+          <div><span class="etiqueta">Reviso</span> {{ t.agente_fibra.nombre_completo }}</div>
+        {% endif %}
+      </div>
+      {% if t.descripcion %}
+        <div class="extracto">{{ t.descripcion | truncate(180) }}</div>
+      {% endif %}
+      {% if t.ultimo_comentario %}
+        <div class="extracto ultimo">
+          <span class="etiqueta">{{ t.ultimo_comentario.autor.nombre_completo }}</span>
+          {{ t.ultimo_comentario.texto | truncate(200) }}
+        </div>
+      {% endif %}
+    {% endif %}
+
+    <div class="pie">
+      {% if t.asignado_a %}
+        <span class="flex" title="Operador asignado: {{ t.asignado_a.nombre_completo }}">
+          <span class="avatar">{{ t.asignado_a.iniciales }}</span>
+          <span class="pequeno suave">{{ t.asignado_a.nombre_completo }}</span>
+        </span>
+      {% else %}
+        <span class="flex"><span class="avatar vacio">?</span><span class="pequeno tenue">Sin asignar</span></span>
+      {% endif %}
+      <span class="pequeno tenue nowrap" title="Creado {{ t.creado_en | fecha }}">
+        {{ t.minutos_transcurridos | duracion }}
+      </span>
+    </div>
+
+    {% if movibles %}
+      <div class="acciones-tarjeta">
+        {% for tr in movibles %}
+          <button type="button" class="btn btn-sm {{ 'btn-peligro' if tr.peligrosa }}"
+                  title="{{ tr.ayuda }}"
+                  onclick="accionTicket('{{ url_accion }}', '{{ tr.clave }}', '{{ url_mover }}', {{ 'true' if tr.pide_datos else 'false' }})">
+            {{ tr.etiqueta }}
+          </button>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </article>
+{% endmacro %}

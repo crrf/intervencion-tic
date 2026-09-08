@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block titulo %}Mi cuenta{% endblock %}
+
+{% block contenido %}
+<div class="encabezado"><h1>Mi cuenta</h1></div>
+
+<div class="rejilla-2">
+  <div class="panel">
+    <h2>Datos</h2>
+    <div class="datos">
+      <div class="dato"><div class="etiqueta">Usuario</div><div class="valor mono">{{ current_user.usuario }}</div></div>
+      <div class="dato"><div class="etiqueta">Nombre</div><div class="valor">{{ current_user.nombre_completo }}</div></div>
+      <div class="dato"><div class="etiqueta">Correo</div><div class="valor">{{ current_user.email or "-" }}</div></div>
+    </div>
+    <div class="campo mt">
+      <div class="etiqueta suave pequeno">Roles</div>
+      <div class="chips">
+        {% for rol in current_user.roles_ordenados %}
+          <span class="chip activo">{{ rol.etiqueta }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="panel {{ 'destacado' if current_user.debe_cambiar_password }}">
+    <h2>Cambiar contrasena</h2>
+
+    {% if current_user.debe_cambiar_password %}
+      <div class="alerta">
+        Un administrador restablecio tu contrasena. Fija una nueva para poder seguir usando el
+        sistema.
+      </div>
+    {% endif %}
+
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if not current_user.debe_cambiar_password %}
+        <div class="campo">
+          <label class="obligatorio" for="actual">Contrasena actual</label>
+          <input type="password" id="actual" name="actual" autocomplete="current-password" required>
+        </div>
+      {% endif %}
+      <div class="campo">
+        <label class="obligatorio" for="nueva">Nueva contrasena</label>
+        <input type="password" id="nueva" name="nueva" minlength="8" autocomplete="new-password" required>
+        <div class="ayuda">Minimo 8 caracteres.</div>
+      </div>
+      <div class="campo">
+        <label class="obligatorio" for="repetir">Repetir nueva contrasena</label>
+        <input type="password" id="repetir" name="repetir" minlength="8" autocomplete="new-password" required>
+      </div>
+      <button class="btn btn-primario" type="submit">Actualizar</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

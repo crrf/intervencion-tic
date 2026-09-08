@@ -1,0 +1,2 @@
+{% set total = total if total is defined else notificaciones_sin_leer %}
+{% if total %}<span class="contador">{{ total if total < 100 else "99+" }}</span>{% endif %}

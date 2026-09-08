@@ -1,0 +1,67 @@
+{#
+  Reporte del periodo: que paso con cada ticket, a quien se asigno y en que
+  estado quedo.
+#}
+<div class="tarjetas">
+  <div class="metrica">
+    <div class="valor">{{ datos.total }}</div>
+    <div class="etiqueta">Tickets en el periodo</div>
+  </div>
+  <div class="metrica acento-verde">
+    <div class="valor">{{ resumen.cerrados }}</div>
+    <div class="etiqueta">Cerrados (en esta pagina)</div>
+  </div>
+  <div class="metrica acento-ambar">
+    <div class="valor">{{ resumen.abiertos }}</div>
+    <div class="etiqueta">Aun abiertos (en esta pagina)</div>
+  </div>
+</div>
+
+{% if datos.filas %}
+  <div class="tabla-contenedor">
+    <table>
+      <thead>
+        <tr>
+          <th>Folio</th>
+          <th>Identificador</th>
+          <th>Tipo</th>
+          <th>Cliente</th>
+          <th>Creado por</th>
+          <th>Asignado a</th>
+          <th>Estado final</th>
+          <th>Fibra</th>
+          <th>Creado</th>
+          <th>Cerrado</th>
+          <th>Resolucion</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in datos.filas %}
+          <tr>
+            <td class="mono nowrap"><a href="{{ f.url }}">{{ f.folio }}</a></td>
+            <td class="mono">{{ f.identificador_externo }}</td>
+            <td class="nowrap pequeno">{{ f.tipo_etiqueta }}</td>
+            <td>{{ f.nombre_cliente }}</td>
+            <td class="pequeno">{{ f.creador_nombre or "-" }}</td>
+            <td class="pequeno">{{ f.asignado_nombre or "Sin asignar" }}</td>
+            <td><span class="insignia {{ f.estado | color_estado }}">{{ f.estado_etiqueta }}</span></td>
+            <td class="pequeno">
+              {% if f.estado_fibra_etiqueta %}
+                <span class="insignia {{ f.estado_fibra | color_estado }}">{{ f.estado_fibra_etiqueta }}</span>
+                {% if f.agente_nombre %}<div class="tenue">{{ f.agente_nombre }}</div>{% endif %}
+              {% else %}-{% endif %}
+            </td>
+            <td class="pequeno nowrap">{{ f.creado_en | fecha }}</td>
+            <td class="pequeno nowrap">{{ f.cerrado_en | fecha }}</td>
+            <td class="pequeno nowrap">{{ f.minutos_resolucion | duracion }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% set endpoint = "reportes.historico" %}
+  {% set base_args = filtros.como_dict() %}
+  {% include "partials/_paginacion.html" with context %}
+{% else %}
+  <div class="vacio">No hubo movimiento de tickets en el periodo seleccionado.</div>
+{% endif %}

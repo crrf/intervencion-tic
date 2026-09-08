@@ -1,0 +1,89 @@
+{# Modal con los datos que exige la transicion antes de aplicarla. #}
+{% set url_mover = url_for('fibra.mover', interrupcion_id=ticket.id) if tipo == "fibra"
+                   else url_for('tablero.mover', tipo=tipo, ticket_id=ticket.id) %}
+<div class="velo" onclick="if (event.target === this) cerrarModal()">
+  <div class="modal">
+    <form action="{{ url_mover }}" onsubmit="return enviarModal(this)">
+      <input type="hidden" name="transicion" value="{{ transicion.clave }}">
+
+      <header>
+        <h3>{{ transicion.etiqueta }}</h3>
+        <button class="cerrar" type="button" onclick="cerrarModal()" aria-label="Cerrar">&times;</button>
+      </header>
+
+      <div class="cuerpo">
+        <p class="suave pequeno mb0">
+          <strong class="mono">{{ ticket.folio }}</strong> &middot; {{ ticket.nombre_cliente }}
+        </p>
+        {% if transicion.ayuda %}<p class="tenue pequeno">{{ transicion.ayuda }}</p>{% endif %}
+
+        {% if transicion.exige_asignado %}
+          <div class="campo">
+            <label class="obligatorio" for="m-operador">Operador</label>
+            <select id="m-operador" name="asignado_a_id" required>
+              <option value="">Selecciona un operador...</option>
+              {% for op in operadores %}
+                <option value="{{ op.id }}">{{ op.nombre_completo }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {# El momento de asignar es cuando mas falta le hace al operador. #}
+          <div class="campo">
+            <label for="m-telefono">
+              Telefono de contacto
+              {% if not ticket.telefono_contacto %}
+                <span class="insignia azul">Recomendado</span>
+              {% endif %}
+            </label>
+            <input type="tel" id="m-telefono" name="telefono_contacto" maxlength="40"
+                   value="{{ ticket.telefono_contacto or '' }}"
+                   placeholder="0414-1234567" pattern="[0-9+(). -]{7,40}">
+            <div class="ayuda">Opcional. El operador lo vera en la tarjeta y en el detalle.</div>
+          </div>
+        {% endif %}
+
+        {% if transicion.exige_dependencia %}
+          <div class="campo">
+            <label class="obligatorio" for="m-dependencia">Dependencia</label>
+            <select id="m-dependencia" name="dependencia" required>
+              <option value="">Clasifica la averia...</option>
+              {% for d in Dependencia %}
+                <option value="{{ d.name }}"
+                  {{ "selected" if ticket.dependencia and ticket.dependencia.name == d.name }}
+                  {{ "disabled" if transicion.exige_capa_fisica and d.name != "CAPA_FISICA" }}>
+                  {{ d.etiqueta }}
+                </option>
+              {% endfor %}
+            </select>
+            {% if transicion.exige_capa_fisica %}
+              <div class="ayuda">Solo las averias de capa fisica se derivan al agente de fibra.</div>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% if transicion.exige_motivo %}
+          <div class="campo">
+            <label class="obligatorio" for="m-motivo">Motivo</label>
+            <input type="text" id="m-motivo" name="motivo" maxlength="240" required
+                   placeholder="Por que no se puede cerrar todavia">
+          </div>
+        {% endif %}
+
+        {% if transicion.exige_comentario %}
+          <div class="campo">
+            <label class="obligatorio" for="m-comentario">Comentario</label>
+            <textarea id="m-comentario" name="comentario" required
+                      placeholder="Describe lo realizado o lo encontrado"></textarea>
+          </div>
+        {% endif %}
+      </div>
+
+      <footer>
+        <button class="btn" type="button" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn btn-primario {{ 'btn-peligro' if transicion.peligrosa }}" type="submit">
+          {{ transicion.etiqueta }}
+        </button>
+      </footer>
+    </form>
+  </div>
+</div>

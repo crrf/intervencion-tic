@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block titulo %}Dashboard{% endblock %}
+
+{% block cabeza %}
+  <script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}" defer></script>
+{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1 class="mb0">Dashboard de desempeno</h1>
+    <p class="suave mb0">
+      Del {{ inicio | fecha("%d/%m/%Y") }} al {{ fin | fecha("%d/%m/%Y") }}
+    </p>
+  </div>
+  <form method="get" class="filtros">
+    <div class="campo">
+      <label for="preset">Periodo</label>
+      <select id="preset" name="preset" onchange="this.form.submit()">
+        {% for clave, etiqueta in presets.items() %}
+          <option value="{{ clave }}" {{ "selected" if preset == clave }}>{{ etiqueta }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="desde">Desde</label>
+      <input type="date" id="desde" name="desde" value="{{ desde }}">
+    </div>
+    <div class="campo">
+      <label for="hasta">Hasta</label>
+      <input type="date" id="hasta" name="hasta" value="{{ hasta }}">
+    </div>
+    <div class="campo"><label>&nbsp;</label><button class="btn btn-primario" type="submit">Aplicar</button></div>
+  </form>
+</div>
+
+<div class="tarjetas">
+  <div class="metrica acento-ambar">
+    <div class="valor">{{ resumen.abiertos }}</div>
+    <div class="etiqueta">Abiertos ahora</div>
+  </div>
+  <div class="metrica acento-verde">
+    <div class="valor">{{ resumen.cerrados_periodo }}</div>
+    <div class="etiqueta">Cerrados en el periodo</div>
+  </div>
+  <div class="metrica">
+    <div class="valor">{{ resumen.creados_periodo }}</div>
+    <div class="etiqueta">Creados en el periodo</div>
+  </div>
+  <div class="metrica acento-violeta">
+    <div class="valor">{{ resumen.fibra_sin_respuesta }}</div>
+    <div class="etiqueta">En fibra sin respuesta</div>
+  </div>
+  <div class="metrica acento-rojo">
+    <div class="valor">{{ resumen.abiertos_con_motivo }}</div>
+    <div class="etiqueta">Abiertos con motivo</div>
+  </div>
+  <div class="metrica">
+    <div class="valor" style="font-size:1.3rem">{{ resumen.prom_resolucion | duracion }}</div>
+    <div class="etiqueta">Tiempo promedio de resolucion</div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Desempeno por operador</h2>
+  <p class="tenue pequeno">
+    Las <strong>soluciones</strong> se atribuyen a quien ejecuto el cierre en el periodo, no a
+    quien figuraba como asignado. Los <strong>pendientes</strong> son un corte al momento.
+  </p>
+  <div class="tabla-contenedor">
+    <table>
+      <thead>
+        <tr>
+          <th>Operador</th>
+          <th class="num">Asignados</th>
+          <th class="num">Soluciones</th>
+          <th class="num">Pendientes</th>
+          <th class="num">Abiertos c/ motivo</th>
+          <th class="num">Derivados a fibra</th>
+          <th class="num">Prom. cierre</th>
+          <th>% de cierre</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in operadores %}
+          <tr>
+            <td>
+              <span class="flex">
+                <span class="avatar">{{ f.operador.iniciales }}</span>
+                <span>
+                  {{ f.operador.nombre_completo }}
+                  {% if not f.activo %}<span class="insignia gris">inactivo</span>{% endif %}
+                  {% if f.operador.tiene_rol(RolUsuario.DESPACHADOR) %}
+                    <span class="insignia azul">+ despachador</span>
+                  {% endif %}
+                </span>
+              </span>
+            </td>
+            <td class="num">{{ f.asignados }}</td>
+            <td class="num"><strong>{{ f.soluciones }}</strong></td>
+            <td class="num">{{ f.pendientes }}</td>
+            <td class="num">{{ f.abiertos_con_motivo }}</td>
+            <td class="num">{{ f.derivados_fibra }}</td>
+            <td class="num nowrap">{{ f.prom_cierre | duracion }}</td>
+            <td>
+              {% if f.porcentaje_cierre is not none %}
+                <span class="flex">
+                  <span class="barra-progreso" style="flex:1">
+                    <span style="width:{{ [f.porcentaje_cierre, 100] | min }}%"></span>
+                  </span>
+                  <span class="pequeno nowrap">{{ f.porcentaje_cierre }}%</span>
+                </span>
+              {% else %}<span class="tenue">-</span>{% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="8" class="vacio">No hay operadores registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="graficos">
+  <div class="grafico">
+    <h3>Soluciones por operador</h3>
+    <div class="lienzo"><canvas id="g-operadores"></canvas></div>
+  </div>
+  <div class="grafico">
+    <h3>Creados vs. cerrados por dia</h3>
+    <div class="lienzo"><canvas id="g-serie"></canvas></div>
+  </div>
+  <div class="grafico">
+    <h3>Interrupciones por dependencia</h3>
+    <div class="lienzo"><canvas id="g-dependencias"></canvas></div>
+  </div>
+  <div class="grafico">
+    <h3>Pendientes por estado</h3>
+    <div class="lienzo"><canvas id="g-pendientes"></canvas></div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Fibra optica</h2>
+  <div class="tarjetas">
+    <div class="metrica">
+      <div class="valor">{{ fibra.recibidas }}</div>
+      <div class="etiqueta">Derivaciones recibidas</div>
+    </div>
+    <div class="metrica acento-verde">
+      <div class="valor">{{ fibra.ok }}</div>
+      <div class="etiqueta">Resueltas como Fibra OK</div>
+    </div>
+    <div class="metrica acento-rojo">
+      <div class="valor">{{ fibra.con_falla }}</div>
+      <div class="etiqueta">Con falla confirmada</div>
+    </div>
+    <div class="metrica acento-ambar">
+      <div class="valor">{{ fibra.en_revision }}</div>
+      <div class="etiqueta">Aun en revision</div>
+    </div>
+    <div class="metrica">
+      <div class="valor" style="font-size:1.3rem">{{ fibra.prom_respuesta | duracion }}</div>
+      <div class="etiqueta">Tiempo promedio de respuesta</div>
+    </div>
+  </div>
+
+  {% if fibra.agentes %}
+    <div class="tabla-contenedor">
+      <table>
+        <thead>
+          <tr>
+            <th>Agente de fibra</th><th class="num">Atendidas</th>
+            <th class="num">Fibra OK</th><th class="num">Con falla</th><th class="num">Prom. respuesta</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in fibra.agentes %}
+            <tr>
+              <td>{{ a.agente }}</td>
+              <td class="num">{{ a.atendidas }}</td>
+              <td class="num">{{ a.ok }}</td>
+              <td class="num">{{ a.con_falla }}</td>
+              <td class="num nowrap">{{ a.prom_respuesta | duracion }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.addEventListener("load", function () {
+    if (typeof Chart === "undefined") { return; }
+
+    var estilo = getComputedStyle(document.body);
+    var texto = estilo.getPropertyValue("--texto-suave").trim();
+    var reja = estilo.getPropertyValue("--borde").trim();
+    Chart.defaults.color = texto;
+    Chart.defaults.borderColor = reja;
+    Chart.defaults.font.family = estilo.getPropertyValue("--fuente");
+
+    var paleta = ["#1d6fb8", "#15803d", "#b45309", "#6d28d9", "#b91c1c", "#0891b2", "#c2410c"];
+    var sinLeyenda = { plugins: { legend: { display: false } }, maintainAspectRatio: false, responsive: true };
+
+    new Chart(document.getElementById("g-operadores"), {
+      type: "bar",
+      data: {
+        labels: {{ operadores | map(attribute="operador") | map(attribute="nombre_completo") | list | tojson }},
+        datasets: [{
+          label: "Soluciones",
+          data: {{ operadores | map(attribute="soluciones") | list | tojson }},
+          backgroundColor: paleta[0]
+        }]
+      },
+      options: Object.assign({ indexAxis: "y" }, sinLeyenda,
+        { scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } })
+    });
+
+    new Chart(document.getElementById("g-serie"), {
+      type: "line",
+      data: {
+        labels: {{ serie.etiquetas | tojson }},
+        datasets: [
+          { label: "Creados", data: {{ serie.creados | tojson }}, borderColor: paleta[0],
+            backgroundColor: paleta[0], tension: .3 },
+          { label: "Cerrados", data: {{ serie.cerrados | tojson }}, borderColor: paleta[1],
+            backgroundColor: paleta[1], tension: .3 }
+        ]
+      },
+      options: { maintainAspectRatio: false, responsive: true,
+                 scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+
+    new Chart(document.getElementById("g-dependencias"), {
+      type: "doughnut",
+      data: {
+        labels: {{ dependencias | map(attribute="etiqueta") | list | tojson }},
+        datasets: [{
+          data: {{ dependencias | map(attribute="n") | list | tojson }},
+          backgroundColor: paleta
+        }]
+      },
+      options: { maintainAspectRatio: false, responsive: true,
+                 plugins: { legend: { position: "bottom" } } }
+    });
+
+    new Chart(document.getElementById("g-pendientes"), {
+      type: "bar",
+      data: {
+        labels: {{ pendientes_estado | map(attribute="etiqueta") | list | tojson }},
+        datasets: [{
+          label: "Pendientes",
+          data: {{ pendientes_estado | map(attribute="n") | list | tojson }},
+          backgroundColor: paleta[2]
+        }]
+      },
+      options: Object.assign({}, sinLeyenda,
+        { scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } })
+    });
+  });
+</script>
+{% endblock %}

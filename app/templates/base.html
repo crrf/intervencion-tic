@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block titulo %}Tickets{% endblock %} &middot; Intervencion Tecnica</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#128225;</text></svg>">
+  <script src="{{ url_for('static', filename='vendor/htmx.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='vendor/sortable.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='vendor/alpine.min.js') }}" defer></script>
+  {% block cabeza %}{% endblock %}
+</head>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'>
+
+{% if current_user.is_authenticated %}
+<header class="barra">
+  <div class="marca">
+    Intervencion Tecnica
+    <span>Tickets e incidencias</span>
+  </div>
+
+  <nav>
+    {% if not solo_fibra %}
+      <a href="{{ url_for('tablero.ver') }}" class="{{ 'activo' if request.endpoint == 'tablero.ver' }}">Tablero</a>
+    {% endif %}
+    {% if current_user.tiene_alguno(RolUsuario.AGENTE_FIBRA, RolUsuario.ADMIN) %}
+      <a href="{{ url_for('fibra.bandeja') }}" class="{{ 'activo' if request.blueprint == 'fibra' }}">Fibra optica</a>
+    {% endif %}
+    {% if puede_gestionar() %}
+      <a href="{{ url_for('buscar.index') }}" class="{{ 'activo' if request.blueprint == 'buscar' }}">Buscar</a>
+      <a href="{{ url_for('reportes.historico') }}" class="{{ 'activo' if request.blueprint == 'reportes' }}">Reportes</a>
+      <a href="{{ url_for('dashboard.ver') }}" class="{{ 'activo' if request.blueprint == 'dashboard' }}">Dashboard</a>
+    {% endif %}
+    {% if current_user.tiene_rol(RolUsuario.ADMIN) %}
+      <a href="{{ url_for('admin.usuarios') }}" class="{{ 'activo' if request.blueprint == 'admin' }}">Usuarios</a>
+    {% endif %}
+  </nav>
+
+  <div class="derecha" x-data="{ abierto: false }">
+    {% if puede_gestionar() %}
+      <a class="btn btn-sm" href="{{ url_for('ordenes.nueva') }}">+ Orden</a>
+      <a class="btn btn-sm" href="{{ url_for('interrupciones.nueva') }}">+ Interrupcion</a>
+    {% endif %}
+
+    <button class="campana" type="button" title="Notificaciones"
+            @click="abierto = !abierto">
+      &#128276;
+      <span id="badge-notificaciones"
+            hx-get="{{ url_for('notificaciones.badge') }}"
+            hx-trigger="load, every 20s"
+            hx-swap="innerHTML">
+        {% include "partials/_badge.html" with context %}
+      </span>
+    </button>
+
+    <div class="panel-notif" x-show="abierto" x-cloak @click.outside="abierto = false"
+         hx-get="{{ url_for('notificaciones.panel') }}"
+         hx-trigger="load, every 60s"
+         hx-swap="innerHTML">
+    </div>
+
+    <div class="usuario">
+      <strong>{{ current_user.nombre_completo }}</strong>
+      <small>{{ current_user.etiqueta_roles }}</small>
+    </div>
+    <a class="btn btn-sm" href="{{ url_for('auth.cuenta') }}" title="Mi cuenta">&#9881;</a>
+    <a class="btn btn-sm" href="{{ url_for('auth.logout') }}">Salir</a>
+  </div>
+</header>
+{% endif %}
+
+<div class="avisos">
+  {% for categoria, mensaje in get_flashed_messages(with_categories=true) %}
+    <div class="aviso {{ categoria }}">{{ mensaje }}</div>
+  {% endfor %}
+</div>
+
+<main class="contenido">
+  {% block contenido %}{% endblock %}
+</main>
+
+<div id="modal"></div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

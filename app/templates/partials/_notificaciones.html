@@ -1,0 +1,23 @@
+<header>
+  <span>Notificaciones</span>
+  {% if total %}
+    <button class="btn btn-sm" type="button"
+            hx-post="{{ url_for('notificaciones.leer_todas') }}"
+            hx-target="closest .panel-notif" hx-swap="innerHTML">
+      Marcar todas leidas
+    </button>
+  {% endif %}
+</header>
+
+{% if notificaciones %}
+  {% for n in notificaciones %}
+    <a class="notif {{ 'sin-leer' if not n.leida }}"
+       href="{{ url_for('notificaciones.abrir', notificacion_id=n.id, url=n.url or '/') }}">
+      <div class="titulo">{{ n.titulo }}</div>
+      {% if n.mensaje %}<div class="mensaje">{{ n.mensaje }}</div>{% endif %}
+      <div class="cuando">{{ n.creada_en | fecha }}</div>
+    </a>
+  {% endfor %}
+{% else %}
+  <div class="vacio">Sin notificaciones.</div>
+{% endif %}

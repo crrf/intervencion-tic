@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block titulo %}Usuarios{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <h1>Usuarios</h1>
+  <a class="btn btn-primario" href="{{ url_for('admin.nuevo') }}">Nuevo usuario</a>
+</div>
+
+<div class="panel">
+  <p class="tenue pequeno mb0">
+    Un usuario puede tener varios roles a la vez. Los permisos son la union de
+    todos: por ejemplo, despachador + operador puede asignarse tickets a si mismo
+    y luego trabajarlos.
+  </p>
+</div>
+
+<div class="tabla-contenedor">
+  <table>
+    <thead>
+      <tr><th>Usuario</th><th>Nombre</th><th>Correo</th><th>Roles</th><th>Estado</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for u in usuarios %}
+        <tr>
+          <td class="mono">{{ u.usuario }}</td>
+          <td>
+            <span class="flex"><span class="avatar">{{ u.iniciales }}</span>{{ u.nombre_completo }}</span>
+          </td>
+          <td class="pequeno">{{ u.email or "-" }}</td>
+          <td>
+            <span class="chips">
+              {% for rol in u.roles_ordenados %}
+                <span class="insignia {{ 'violeta' if rol.name == 'ADMIN' else 'azul' }}">{{ rol.etiqueta }}</span>
+              {% endfor %}
+            </span>
+          </td>
+          <td>
+            <span class="insignia {{ 'verde' if u.activo else 'gris' }}">
+              {{ "Activo" if u.activo else "Inactivo" }}
+            </span>
+            {% if u.debe_cambiar_password %}
+              <span class="insignia ambar" title="Debe fijar una contrasena nueva al entrar">
+                Clave por cambiar
+              </span>
+            {% endif %}
+          </td>
+          <td class="nowrap">
+            <a class="btn btn-sm" href="{{ url_for('admin.editar', usuario_id=u.id) }}">Editar</a>
+            <form method="post" style="display:inline"
+                  action="{{ url_for('admin.restablecer_password', usuario_id=u.id) }}"
+                  onsubmit="return confirm('Se generara una contrasena temporal para {{ u.usuario }} y la actual dejara de servir. Continuar?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="generar" value="1">
+              <button class="btn btn-sm" type="submit">Restablecer clave</button>
+            </form>
+            {% if u.id != current_user.id %}
+              <form method="post" action="{{ url_for('admin.activar', usuario_id=u.id) }}"
+                    style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm {{ 'btn-peligro' if u.activo }}" type="submit">
+                  {{ "Desactivar" if u.activo else "Activar" }}
+                </button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

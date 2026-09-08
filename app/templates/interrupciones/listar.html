@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block titulo %}Interrupciones{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <h1>Interrupciones</h1>
+  <div class="acciones">
+    <a class="btn" href="{{ url_for('tablero.ver', tipo='interrupciones') }}">Ver en tablero</a>
+    {% if puede_gestionar() %}
+      <a class="btn btn-primario" href="{{ url_for('interrupciones.nueva') }}">Nueva interrupcion</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if interrupciones %}
+  <div class="tabla-contenedor">
+    <table>
+      <thead>
+        <tr>
+          <th>Folio</th><th>Identificador</th><th>Cliente</th><th>Titulo</th>
+          <th>Dependencia</th><th>Estado</th><th>Fibra</th><th>Asignado a</th><th>Creado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in interrupciones %}
+          <tr>
+            <td class="mono nowrap"><a href="{{ i.url_detalle }}">{{ i.folio }}</a></td>
+            <td class="mono">{{ i.identificador_externo }}</td>
+            <td>{{ i.nombre_cliente }}</td>
+            <td>{{ i.titulo }}</td>
+            <td class="pequeno">{{ i.dependencia.etiqueta if i.dependencia else "Por diagnosticar" }}</td>
+            <td><span class="insignia {{ i.estado | color_estado }}">{{ i.estado.etiqueta }}</span></td>
+            <td>
+              {% if i.estado_fibra %}
+                <span class="insignia {{ i.estado_fibra | color_estado }}">{{ i.estado_fibra.etiqueta }}</span>
+              {% else %}-{% endif %}
+            </td>
+            <td class="pequeno">{{ i.asignado_a.nombre_completo if i.asignado_a else "Sin asignar" }}</td>
+            <td class="pequeno nowrap">{{ i.creado_en | fecha }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="vacio">No hay interrupciones visibles para tu perfil.</div>
+{% endif %}
+{% endblock %}

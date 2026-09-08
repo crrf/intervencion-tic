@@ -1,0 +1,17 @@
+.env
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+instance/
+*.sqlite3
+.idea/
+.vscode/
+*.log
+
+# Datos persistentes de PostgreSQL y Garage (bind mounts del host)
+/datos/

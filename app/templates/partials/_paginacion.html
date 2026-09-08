@@ -1,0 +1,17 @@
+{% if datos.paginas > 1 %}
+  {% set base = base_args | default({}) %}
+  <nav class="paginacion">
+    <span class="info">
+      {{ datos.total }} resultado{{ "s" if datos.total != 1 }} &middot;
+      pagina {{ datos.pagina }} de {{ datos.paginas }}
+    </span>
+    {% if datos.pagina > 1 %}
+      <a class="btn btn-sm" href="{{ url_for(endpoint, pagina=datos.pagina - 1, **base) }}">&laquo; Anterior</a>
+    {% endif %}
+    {% if datos.pagina < datos.paginas %}
+      <a class="btn btn-sm" href="{{ url_for(endpoint, pagina=datos.pagina + 1, **base) }}">Siguiente &raquo;</a>
+    {% endif %}
+  </nav>
+{% elif datos.total %}
+  <p class="centro suave pequeno">{{ datos.total }} resultado{{ "s" if datos.total != 1 }}.</p>
+{% endif %}

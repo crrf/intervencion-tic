@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block titulo %}Buscar tickets{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <h1>Buscar tickets</h1>
+  <div class="acciones">
+    <a class="btn" href="{{ url_for('buscar.csv', **filtros.como_dict()) }}">Exportar CSV</a>
+  </div>
+</div>
+
+<div class="panel">
+  {#
+    El formulario se envia por GET para que cada busqueda tenga su propia URL
+    compartible; HTMX solo reemplaza la tabla de resultados.
+  #}
+  <form method="get" action="{{ url_for('buscar.index') }}"
+        hx-get="{{ url_for('buscar.index') }}"
+        hx-target="#resultados" hx-swap="innerHTML"
+        hx-trigger="submit, change from:select, keyup changed delay:400ms from:input[name=texto]"
+        hx-push-url="true">
+
+    <div class="filtros">
+      <div class="campo ancho">
+        <label for="texto">Identificador, folio, cliente o texto</label>
+        <input type="text" id="texto" name="texto" value="{{ filtros.texto }}"
+               placeholder="ED123456, OT-2026-0001, nombre del cliente..." autofocus>
+      </div>
+      <div class="campo">
+        <label for="tipo">Tipo</label>
+        <select id="tipo" name="tipo">
+          <option value="">Todos</option>
+          {% for t in tipos %}
+            <option value="{{ t.name }}" {{ "selected" if filtros.tipo == t.name }}>{{ t.etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label for="estado">Estado</label>
+        <select id="estado" name="estado">
+          <option value="">Todos</option>
+          <optgroup label="Ordenes de trabajo">
+            {% for e in estados_orden %}
+              <option value="{{ e.name }}" {{ "selected" if filtros.estado == e.name }}>{{ e.etiqueta }}</option>
+            {% endfor %}
+          </optgroup>
+          <optgroup label="Interrupciones">
+            {% for e in estados_interrupcion %}
+              {% if e.name not in ["NUEVA", "ASIGNADA", "EN_PROCESO", "CERRADA"] %}
+                <option value="{{ e.name }}" {{ "selected" if filtros.estado == e.name }}>{{ e.etiqueta }}</option>
+              {% endif %}
+            {% endfor %}
+          </optgroup>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="dependencia">Dependencia</label>
+        <select id="dependencia" name="dependencia">
+          <option value="">Todas</option>
+          {% for d in dependencias %}
+            <option value="{{ d.name }}" {{ "selected" if filtros.dependencia == d.name }}>{{ d.etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label for="estado_fibra">Estado de fibra</label>
+        <select id="estado_fibra" name="estado_fibra">
+          <option value="">Cualquiera</option>
+          {% for e in estados_fibra %}
+            <option value="{{ e.name }}" {{ "selected" if filtros.estado_fibra == e.name }}>{{ e.etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label for="prioridad">Prioridad</label>
+        <select id="prioridad" name="prioridad">
+          <option value="">Todas</option>
+          {% for p in prioridades %}
+            <option value="{{ p.name }}" {{ "selected" if filtros.prioridad == p.name }}>{{ p.etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label for="asignado_a_id">Operador asignado</label>
+        <select id="asignado_a_id" name="asignado_a_id">
+          <option value="">Todos</option>
+          {% for u in operadores %}
+            <option value="{{ u.id }}" {{ "selected" if filtros.asignado_a_id == u.id }}>{{ u.nombre_completo }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label for="creado_por_id">Creado por</label>
+        <select id="creado_por_id" name="creado_por_id">
+          <option value="">Todos</option>
+          {% for u in despachadores %}
+            <option value="{{ u.id }}" {{ "selected" if filtros.creado_por_id == u.id }}>{{ u.nombre_completo }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label for="agente_fibra_id">Agente de fibra</label>
+        <select id="agente_fibra_id" name="agente_fibra_id">
+          <option value="">Todos</option>
+          {% for u in agentes %}
+            <option value="{{ u.id }}" {{ "selected" if filtros.agente_fibra_id == u.id }}>{{ u.nombre_completo }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label for="preset">Periodo</label>
+        <select id="preset" name="preset">
+          <option value="">Sin limite de fecha</option>
+          {% for clave, etiqueta in presets.items() %}
+            <option value="{{ clave }}" {{ "selected" if filtros.preset == clave }}>{{ etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label for="campo_fecha">Fecha por</label>
+        <select id="campo_fecha" name="campo_fecha">
+          <option value="creado_en" {{ "selected" if filtros.campo_fecha == "creado_en" }}>Creacion</option>
+          <option value="cerrado_en" {{ "selected" if filtros.campo_fecha == "cerrado_en" }}>Cierre</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="desde">Desde</label>
+        <input type="date" id="desde" name="desde" value="{{ filtros.desde }}">
+      </div>
+      <div class="campo">
+        <label for="hasta">Hasta</label>
+        <input type="date" id="hasta" name="hasta" value="{{ filtros.hasta }}">
+      </div>
+      <div class="campo">
+        <label>&nbsp;</label>
+        <div class="acciones">
+          <button class="btn btn-primario" type="submit">Buscar</button>
+          <a class="btn" href="{{ url_for('buscar.index') }}">Limpiar</a>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<div id="resultados">
+  {% include "partials/_resultados.html" with context %}
+</div>
+{% endblock %}

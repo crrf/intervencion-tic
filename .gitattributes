@@ -1,0 +1,19 @@
+# Normalizacion de fin de linea.
+* text=auto
+
+# Todo lo que se ejecuta DENTRO de los contenedores Linux tiene que conservar
+# LF. Si se clona en Windows con autocrlf y estos ficheros quedan con CRLF, la
+# imagen falla al arrancar con "/bin/sh: bad interpreter".
+*.sh          text eol=lf
+Dockerfile    text eol=lf
+*.toml        text eol=lf
+*.ini         text eol=lf
+*.py          text eol=lf
+*.html        text eol=lf
+*.css         text eol=lf
+*.js          text eol=lf
+*.yml         text eol=lf
+.env.example  text eol=lf
+
+# Librerias vendorizadas: se dejan tal cual.
+app/static/vendor/** -text

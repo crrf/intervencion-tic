@@ -1,0 +1,12 @@
+<div class="velo" onclick="if (event.target === this) cerrarModal()">
+  <div class="modal">
+    <header>
+      <h3>No se puede aplicar</h3>
+      <button class="cerrar" type="button" onclick="cerrarModal()" aria-label="Cerrar">&times;</button>
+    </header>
+    <div class="cuerpo"><div class="alerta">{{ mensaje }}</div></div>
+    <footer>
+      <button class="btn btn-primario" type="button" onclick="cerrarModal()">Entendido</button>
+    </footer>
+  </div>
+</div>

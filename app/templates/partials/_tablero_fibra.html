@@ -1,0 +1,57 @@
+{% from "partials/_macros.html" import tarjeta with context %}
+
+{% if error %}<div class="alerta">{{ error }}</div>{% endif %}
+
+{#
+  Cuando hay una columna ampliada el tablero pasa a flex: esa columna se lleva
+  todo el ancho y muestra las tarjetas en rejilla con mas datos; las otras
+  quedan como tiras estrechas que siguen sirviendo de destino al arrastrar.
+#}
+<div class="tablero {{ 'con-ampliada' if ampliada }}">
+  {% for col in columnas %}
+    {% set otros = args.copy() %}
+    {% set _ = otros.pop("ampliada", None) %}
+    <section class="columna {{ 'ampliada' if col.ampliada }} {{ 'reducida' if col.reducida }}">
+      <header>
+        <span class="insignia {{ col.estado | color_estado }}">{{ col.estado.etiqueta }}</span>
+        <span class="flex">
+          <span class="conteo">{{ col.total }}</span>
+          {% if col.ampliada %}
+            <a class="btn btn-sm" title="Volver a las tres columnas"
+               href="{{ url_for('fibra.bandeja', **otros) }}">&#10530; Restaurar</a>
+          {% else %}
+            <a class="btn btn-sm" title="Ampliar esta columna para verla completa"
+               href="{{ url_for('fibra.bandeja', ampliada=col.estado.name, **otros) }}">&#10529;</a>
+          {% endif %}
+        </span>
+      </header>
+
+      <div class="lista" data-grupo="fibra" data-estado="{{ col.estado.name }}">
+        {% for t in col.tickets %}
+          {{ tarjeta(t,
+                     transiciones_de(t),
+                     url_for("fibra.mover", interrupcion_id=t.id),
+                     url_for("fibra.accion", interrupcion_id=t.id),
+                     "estado_fibra",
+                     col.ampliada,
+                     minutos_demora) }}
+        {% else %}
+          {% if not col.reducida %}
+            <p class="vacio pequeno">Sin interrupciones aqui.</p>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+</div>
+
+{% if total == 0 %}
+  <div class="vacio">
+    {% if q or prioridad %}
+      Ninguna interrupcion derivada coincide con el filtro.
+      <a href="{{ url_for('fibra.bandeja') }}">Ver todas</a>.
+    {% else %}
+      No hay interrupciones derivadas a capa fisica en este momento.
+    {% endif %}
+  </div>
+{% endif %}

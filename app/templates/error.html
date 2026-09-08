@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block titulo %}Error {{ codigo }}{% endblock %}
+
+{% block contenido %}
+<div class="panel centro" style="max-width:560px;margin:3rem auto">
+  <h1 style="font-size:3rem;color:var(--texto-tenue);margin-bottom:.5rem">{{ codigo }}</h1>
+  <h2>{{ titulo }}</h2>
+  <p class="suave">{{ mensaje }}</p>
+  <a class="btn btn-primario mt" href="{{ url_for('tablero.inicio') }}">Volver al inicio</a>
+</div>
+{% endblock %}
