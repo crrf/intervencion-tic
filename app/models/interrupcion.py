@@ -34,7 +34,8 @@ class Interrupcion(TicketMixin, db.Model):
     derivado_fibra_en = db.Column(db.DateTime(timezone=True))
     respuesta_fibra_en = db.Column(db.DateTime(timezone=True))
 
-    foto_key = db.Column(db.String(255), nullable=False)
+    # Recomendada, no obligatoria (ver OrdenTrabajo).
+    foto_key = db.Column(db.String(255))
 
     creado_por = db.relationship("Usuario", foreign_keys=[creado_por_id])
     asignado_a = db.relationship("Usuario", foreign_keys=[asignado_a_id])

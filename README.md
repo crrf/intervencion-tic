@@ -169,11 +169,18 @@ sobre quién — nunca la contraseña.
 
 ## Fotos
 
-- **Orden de trabajo:** dos fotos obligatorias, anverso y reverso del documento físico.
-- **Interrupción:** una foto obligatoria.
-- Las sube el despachador (o un admin) al crear el ticket, y puede reemplazarlas mientras el ticket
-  siga abierto; cada reemplazo queda en el historial.
+Las fotos son **recomendadas, no obligatorias**: un ticket se puede registrar sin ellas —a veces
+el reporte entra por teléfono y no hay documento a mano— y completarse después.
+
+- **Orden de trabajo:** anverso y reverso del documento físico.
+- **Interrupción:** una foto del reporte.
+- Las sube el despachador (o un admin) al crear el ticket, y puede agregarlas o reemplazarlas
+  mientras el ticket siga abierto; cada cambio queda en el historial.
+- En el detalle, las que faltan aparecen como un hueco con su botón **Agregar** y un aviso de que
+  conviene adjuntarlas — nunca como una imagen rota.
 - El operador y el agente de fibra **no** suben imágenes: solo comentan.
+- Lo que sí se adjunta se valida igual: formato (jpg, png, webp), tamaño máximo y que el archivo
+  sea de verdad una imagen, no solo que tenga la extensión.
 
 El bucket es privado. Las imágenes se sirven por `/adjuntos/<tipo>/<id>/<cual>`, que verifica el
 permiso sobre el ticket y redirige a una **URL prefirmada** de 15 minutos.

@@ -108,9 +108,22 @@ def linea_de_tiempo(ticket) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Fotos
 # ---------------------------------------------------------------------------
+def _hay_archivo(archivo) -> bool:
+    """Un campo de fichero vacio llega como None o con filename en blanco."""
+    return archivo is not None and bool(getattr(archivo, "filename", ""))
+
+
+def _subir_si_hay(archivo, clave_base: str) -> str | None:
+    """Sube la foto solo si se adjunto una. Las fotos son recomendadas, no
+    obligatorias: un ticket puede nacer sin ellas y completarse despues."""
+    if not _hay_archivo(archivo):
+        return None
+    return _validar_y_subir(archivo, clave_base)
+
+
 def _validar_y_subir(archivo, clave_base: str) -> str:
-    if archivo is None or not getattr(archivo, "filename", ""):
-        raise DatosInvalidos("Falta una de las fotos obligatorias.")
+    if not _hay_archivo(archivo):
+        raise DatosInvalidos("No se adjunto ninguna imagen.")
 
     extension = storage.extension_de(archivo.filename)
     if extension not in current_app.config["EXTENSIONES_FOTO"]:
@@ -233,11 +246,13 @@ def crear_orden(
         prioridad = Prioridad.desde_nombre(prioridad) or Prioridad.MEDIA
 
     folio = siguiente_folio(TipoTicket.ORDEN, ahora().year)
-    anverso = _validar_y_subir(foto_anverso, f"ordenes/{folio}/anverso")
+    anverso = _subir_si_hay(foto_anverso, f"ordenes/{folio}/anverso")
     try:
-        reverso = _validar_y_subir(foto_reverso, f"ordenes/{folio}/reverso")
+        reverso = _subir_si_hay(foto_reverso, f"ordenes/{folio}/reverso")
     except DatosInvalidos:
-        storage.eliminar(anverso)
+        # Si la segunda cara falla, no se deja la primera huerfana en el bucket.
+        if anverso:
+            storage.eliminar(anverso)
         raise
 
     orden = OrdenTrabajo(
@@ -290,7 +305,7 @@ def crear_interrupcion(
         prioridad = Prioridad.desde_nombre(prioridad) or Prioridad.MEDIA
 
     folio = siguiente_folio(TipoTicket.INTERRUPCION, ahora().year)
-    clave = _validar_y_subir(foto, f"interrupciones/{folio}/foto")
+    clave = _subir_si_hay(foto, f"interrupciones/{folio}/foto")
 
     inter = Interrupcion(
         folio=folio,

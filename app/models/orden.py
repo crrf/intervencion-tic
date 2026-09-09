@@ -25,8 +25,10 @@ class OrdenTrabajo(TicketMixin, db.Model):
 
     # Foto del documento fisico de la orden, por sus dos caras. Obligatorias
     # al crear; solo las sube el despachador (o un admin).
-    foto_anverso_key = db.Column(db.String(255), nullable=False)
-    foto_reverso_key = db.Column(db.String(255), nullable=False)
+    # Recomendadas, no obligatorias: el ticket puede nacer sin ellas y el
+    # despachador las agrega despues desde el detalle.
+    foto_anverso_key = db.Column(db.String(255))
+    foto_reverso_key = db.Column(db.String(255))
 
     creado_por = db.relationship("Usuario", foreign_keys=[creado_por_id])
     asignado_a = db.relationship("Usuario", foreign_keys=[asignado_a_id])

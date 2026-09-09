@@ -102,8 +102,9 @@ def cambiar_foto(ticket, cual: str):
         flash("Solo el despachador o un administrador puede cambiar las fotos.", "error")
         return redirect(ticket.url_detalle)
     try:
+        tenia = bool(ticket.clave_foto(cual))
         servicio.reemplazar_foto(ticket, current_user, cual, request.files.get("foto"))
-        flash("Foto actualizada.", "ok")
+        flash("Foto actualizada." if tenia else "Foto agregada.", "ok")
     except servicio.DatosInvalidos as exc:
         db.session.rollback()
         flash(str(exc), "error")

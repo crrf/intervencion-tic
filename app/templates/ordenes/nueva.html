@@ -70,18 +70,20 @@
   </div>
 
   <div class="panel">
-    <h2>Foto de la orden</h2>
+    <h2>Foto de la orden <span class="insignia azul">Recomendado</span></h2>
     <p class="suave pequeno">
-      Se exigen las dos caras del documento fisico. Formatos jpg, png o webp.
+      Las dos caras del documento fisico. No son obligatorias para crear la orden, pero sin
+      ellas el operador trabaja sin el respaldo del papel. Se pueden agregar despues desde el
+      detalle, mientras la orden siga abierta. Formatos jpg, png o webp.
     </p>
     <div class="rejilla-2">
       <div class="campo">
-        <label class="obligatorio" for="foto_anverso">Anverso</label>
-        <input type="file" id="foto_anverso" name="foto_anverso" accept="image/*" required>
+        <label for="foto_anverso">Anverso</label>
+        <input type="file" id="foto_anverso" name="foto_anverso" accept="image/*">
       </div>
       <div class="campo">
-        <label class="obligatorio" for="foto_reverso">Reverso</label>
-        <input type="file" id="foto_reverso" name="foto_reverso" accept="image/*" required>
+        <label for="foto_reverso">Reverso</label>
+        <input type="file" id="foto_reverso" name="foto_reverso" accept="image/*">
       </div>
     </div>
   </div>

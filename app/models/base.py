@@ -86,6 +86,15 @@ class TicketMixin:
         return int((fin - self.creado_en).total_seconds() // 60)
 
     @property
+    def fotos_faltantes(self) -> list[str]:
+        """Fotos recomendadas que todavia no se han adjuntado."""
+        return [cual for cual in self.FOTOS if not self.clave_foto(cual)]
+
+    @property
+    def tiene_todas_las_fotos(self) -> bool:
+        return not self.fotos_faltantes
+
+    @property
     def telefono_marcable(self) -> str | None:
         """El telefono sin separadores, para el enlace `tel:`."""
         if not self.telefono_contacto:

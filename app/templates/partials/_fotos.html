@@ -1,25 +1,50 @@
 {#
   Las imagenes se sirven por /adjuntos/..., que valida el permiso y redirige a
   una URL prefirmada de corta duracion: el bucket nunca queda publico.
+
+  Las fotos son recomendadas, no obligatorias: las que falten se muestran como
+  un hueco con su boton para adjuntarlas, en vez de una imagen rota.
 #}
 {% set etiquetas = {"anverso": "Anverso", "reverso": "Reverso", "foto": "Foto de la interrupcion"} %}
 {% set editable = ticket.abierto and current_user.tiene_alguno(RolUsuario.ADMIN, RolUsuario.DESPACHADOR) %}
 
+{% if ticket.fotos_faltantes and editable %}
+  {% set pendientes = [] %}
+  {% for cual in ticket.fotos_faltantes %}
+    {% set _ = pendientes.append(etiquetas.get(cual, cual) | lower) %}
+  {% endfor %}
+  <div class="aviso aviso-inline" style="margin-bottom:.85rem">
+    Falta{{ "n" if pendientes | length > 1 }} {{ pendientes | join(" y ") }}.
+    Adjuntar{{ "las" if pendientes | length > 1 else "la" }} es recomendable: deja constancia
+    del respaldo fisico.
+  </div>
+{% endif %}
+
 <div class="fotos">
   {% for cual in ticket.FOTOS %}
-    {% set src = url_for('adjuntos.ver', tipo=tipo_adjunto, ticket_id=ticket.id, cual=cual) %}
-    <figure class="foto">
-      <a href="{{ src }}" target="_blank" rel="noopener">
-        <img src="{{ src }}" alt="{{ etiquetas.get(cual, cual) }} de {{ ticket.folio }}" loading="lazy">
-      </a>
+    {% set clave = ticket.clave_foto(cual) %}
+    {% set etiqueta = etiquetas.get(cual, cual) %}
+    <figure class="foto {{ 'sin-imagen' if not clave }}">
+      {% if clave %}
+        {% set src = url_for('adjuntos.ver', tipo=tipo_adjunto, ticket_id=ticket.id, cual=cual) %}
+        <a href="{{ src }}" target="_blank" rel="noopener">
+          <img src="{{ src }}" alt="{{ etiqueta }} de {{ ticket.folio }}" loading="lazy">
+        </a>
+      {% else %}
+        <div class="hueco">
+          <span class="icono">&#128247;</span>
+          <span class="pequeno">Sin foto</span>
+        </div>
+      {% endif %}
+
       <figcaption>
-        <span>{{ etiquetas.get(cual, cual) }}</span>
+        <span>{{ etiqueta }}</span>
         {% if editable %}
           <form method="post" enctype="multipart/form-data"
                 action="{{ url_for(endpoint_foto, **{id_kwarg: ticket.id, 'cual': cual}) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <label class="btn btn-sm" style="margin:0">
-              Cambiar
+            <label class="btn btn-sm {{ 'btn-primario' if not clave }}" style="margin:0">
+              {{ "Agregar" if not clave else "Cambiar" }}
               <input type="file" name="foto" accept="image/*" class="oculto"
                      onchange="this.form.submit()">
             </label>
