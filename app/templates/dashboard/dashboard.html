@@ -68,7 +68,7 @@
     quien figuraba como asignado. Los <strong>pendientes</strong> son un corte al momento.
   </p>
   <div class="tabla-contenedor">
-    <table>
+    <table class="apilable">
       <thead>
         <tr>
           <th>Operador</th>
@@ -84,7 +84,7 @@
       <tbody>
         {% for f in operadores %}
           <tr>
-            <td>
+            <td data-etiqueta="Operador">
               <span class="flex">
                 <span class="avatar">{{ f.operador.iniciales }}</span>
                 <span>
@@ -96,13 +96,13 @@
                 </span>
               </span>
             </td>
-            <td class="num">{{ f.asignados }}</td>
-            <td class="num"><strong>{{ f.soluciones }}</strong></td>
-            <td class="num">{{ f.pendientes }}</td>
-            <td class="num">{{ f.abiertos_con_motivo }}</td>
-            <td class="num">{{ f.derivados_fibra }}</td>
-            <td class="num nowrap">{{ f.prom_cierre | duracion }}</td>
-            <td>
+            <td class="num" data-etiqueta="Asignados">{{ f.asignados }}</td>
+            <td class="num" data-etiqueta="Soluciones"><strong>{{ f.soluciones }}</strong></td>
+            <td class="num" data-etiqueta="Pendientes">{{ f.pendientes }}</td>
+            <td class="num" data-etiqueta="Abiertos c/ motivo">{{ f.abiertos_con_motivo }}</td>
+            <td class="num" data-etiqueta="Derivados a fibra">{{ f.derivados_fibra }}</td>
+            <td class="num nowrap" data-etiqueta="Prom. cierre">{{ f.prom_cierre | duracion }}</td>
+            <td data-etiqueta="% de cierre">
               {% if f.porcentaje_cierre is not none %}
                 <span class="flex">
                   <span class="barra-progreso" style="flex:1">
@@ -167,7 +167,7 @@
 
   {% if fibra.agentes %}
     <div class="tabla-contenedor">
-      <table>
+      <table class="apilable">
         <thead>
           <tr>
             <th>Agente de fibra</th><th class="num">Atendidas</th>
@@ -177,11 +177,11 @@
         <tbody>
           {% for a in fibra.agentes %}
             <tr>
-              <td>{{ a.agente }}</td>
-              <td class="num">{{ a.atendidas }}</td>
-              <td class="num">{{ a.ok }}</td>
-              <td class="num">{{ a.con_falla }}</td>
-              <td class="num nowrap">{{ a.prom_respuesta | duracion }}</td>
+              <td data-etiqueta="Agente">{{ a.agente }}</td>
+              <td class="num" data-etiqueta="Atendidas">{{ a.atendidas }}</td>
+              <td class="num" data-etiqueta="Fibra OK">{{ a.ok }}</td>
+              <td class="num" data-etiqueta="Con falla">{{ a.con_falla }}</td>
+              <td class="num nowrap" data-etiqueta="Prom. respuesta">{{ a.prom_respuesta | duracion }}</td>
             </tr>
           {% endfor %}
         </tbody>

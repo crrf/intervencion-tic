@@ -16,26 +16,26 @@
 </div>
 
 <div class="tabla-contenedor">
-  <table>
+  <table class="apilable">
     <thead>
       <tr><th>Usuario</th><th>Nombre</th><th>Correo</th><th>Roles</th><th>Estado</th><th></th></tr>
     </thead>
     <tbody>
       {% for u in usuarios %}
         <tr>
-          <td class="mono">{{ u.usuario }}</td>
-          <td>
+          <td class="mono" data-etiqueta="Usuario">{{ u.usuario }}</td>
+          <td data-etiqueta="Nombre">
             <span class="flex"><span class="avatar">{{ u.iniciales }}</span>{{ u.nombre_completo }}</span>
           </td>
-          <td class="pequeno">{{ u.email or "-" }}</td>
-          <td>
+          <td class="pequeno" data-etiqueta="Correo">{{ u.email or "-" }}</td>
+          <td data-etiqueta="Roles">
             <span class="chips">
               {% for rol in u.roles_ordenados %}
                 <span class="insignia {{ 'violeta' if rol.name == 'ADMIN' else 'azul' }}">{{ rol.etiqueta }}</span>
               {% endfor %}
             </span>
           </td>
-          <td>
+          <td data-etiqueta="Estado">
             <span class="insignia {{ 'verde' if u.activo else 'gris' }}">
               {{ "Activo" if u.activo else "Inactivo" }}
             </span>
@@ -45,7 +45,7 @@
               </span>
             {% endif %}
           </td>
-          <td class="nowrap">
+          <td class="acciones-fila">
             <a class="btn btn-sm" href="{{ url_for('admin.editar', usuario_id=u.id) }}">Editar</a>
             <form method="post" style="display:inline"
                   action="{{ url_for('admin.restablecer_password', usuario_id=u.id) }}"

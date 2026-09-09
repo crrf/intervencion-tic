@@ -12,7 +12,7 @@
 
 {% if ordenes %}
   <div class="tabla-contenedor">
-    <table>
+    <table class="apilable">
       <thead>
         <tr>
           <th>Folio</th><th>Identificador</th><th>Cliente</th><th>Titulo</th>
@@ -22,14 +22,14 @@
       <tbody>
         {% for o in ordenes %}
           <tr>
-            <td class="mono nowrap"><a href="{{ o.url_detalle }}">{{ o.folio }}</a></td>
-            <td class="mono">{{ o.identificador_externo }}</td>
-            <td>{{ o.nombre_cliente }}</td>
-            <td>{{ o.titulo }}</td>
-            <td><span class="insignia {{ o.prioridad | color_prioridad }}">{{ o.prioridad.etiqueta }}</span></td>
-            <td><span class="insignia {{ o.estado | color_estado }}">{{ o.estado.etiqueta }}</span></td>
-            <td class="pequeno">{{ o.asignado_a.nombre_completo if o.asignado_a else "Sin asignar" }}</td>
-            <td class="pequeno nowrap">{{ o.creado_en | fecha }}</td>
+            <td class="mono nowrap" data-etiqueta="Folio"><a href="{{ o.url_detalle }}">{{ o.folio }}</a></td>
+            <td class="mono" data-etiqueta="Identificador">{{ o.identificador_externo }}</td>
+            <td data-etiqueta="Cliente">{{ o.nombre_cliente }}</td>
+            <td data-etiqueta="Titulo">{{ o.titulo }}</td>
+            <td data-etiqueta="Prioridad"><span class="insignia {{ o.prioridad | color_prioridad }}">{{ o.prioridad.etiqueta }}</span></td>
+            <td data-etiqueta="Estado"><span class="insignia {{ o.estado | color_estado }}">{{ o.estado.etiqueta }}</span></td>
+            <td class="pequeno" data-etiqueta="Asignado a">{{ o.asignado_a.nombre_completo if o.asignado_a else "Sin asignar" }}</td>
+            <td class="pequeno nowrap" data-etiqueta="Creado">{{ o.creado_en | fecha }}</td>
           </tr>
         {% endfor %}
       </tbody>

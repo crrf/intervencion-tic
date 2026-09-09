@@ -20,12 +20,22 @@
         hx-trigger="submit, change from:select, keyup changed delay:400ms from:input[name=texto]"
         hx-push-url="true">
 
-    <div class="filtros">
+    {#
+      En movil solo se deja a la vista el cuadro de busqueda: los trece
+      filtros apilados dejarian los resultados fuera de pantalla. El resto se
+      despliega con el boton, y en escritorio se muestran siempre.
+    #}
+    <div class="filtros" x-data="{ mas: false }">
       <div class="campo ancho">
         <label for="texto">Identificador, folio, cliente o texto</label>
-        <input type="text" id="texto" name="texto" value="{{ filtros.texto }}"
-               placeholder="ED123456, OT-2026-0001, nombre del cliente..." autofocus>
+        <input type="search" id="texto" name="texto" value="{{ filtros.texto }}"
+               placeholder="ED123456, OT-2026-0001, nombre del cliente...">
       </div>
+
+      <button type="button" class="btn solo-movil btn-bloque" @click="mas = !mas"
+              x-text="mas ? 'Ocultar filtros' : 'Mas filtros'">Mas filtros</button>
+
+      <div class="filtros-extra" :class="{ abierto: mas }">
       <div class="campo">
         <label for="tipo">Tipo</label>
         <select id="tipo" name="tipo">
@@ -131,8 +141,10 @@
         <label for="hasta">Hasta</label>
         <input type="date" id="hasta" name="hasta" value="{{ filtros.hasta }}">
       </div>
+      </div>{# /filtros-extra #}
+
       <div class="campo">
-        <label>&nbsp;</label>
+        <label class="no-movil">&nbsp;</label>
         <div class="acciones">
           <button class="btn btn-primario" type="submit">Buscar</button>
           <a class="btn" href="{{ url_for('buscar.index') }}">Limpiar</a>

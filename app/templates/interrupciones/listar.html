@@ -14,7 +14,7 @@
 
 {% if interrupciones %}
   <div class="tabla-contenedor">
-    <table>
+    <table class="apilable">
       <thead>
         <tr>
           <th>Folio</th><th>Identificador</th><th>Cliente</th><th>Titulo</th>
@@ -24,19 +24,19 @@
       <tbody>
         {% for i in interrupciones %}
           <tr>
-            <td class="mono nowrap"><a href="{{ i.url_detalle }}">{{ i.folio }}</a></td>
-            <td class="mono">{{ i.identificador_externo }}</td>
-            <td>{{ i.nombre_cliente }}</td>
-            <td>{{ i.titulo }}</td>
-            <td class="pequeno">{{ i.dependencia.etiqueta if i.dependencia else "Por diagnosticar" }}</td>
-            <td><span class="insignia {{ i.estado | color_estado }}">{{ i.estado.etiqueta }}</span></td>
-            <td>
+            <td class="mono nowrap" data-etiqueta="Folio"><a href="{{ i.url_detalle }}">{{ i.folio }}</a></td>
+            <td class="mono" data-etiqueta="Identificador">{{ i.identificador_externo }}</td>
+            <td data-etiqueta="Cliente">{{ i.nombre_cliente }}</td>
+            <td data-etiqueta="Titulo">{{ i.titulo }}</td>
+            <td class="pequeno" data-etiqueta="Dependencia">{{ i.dependencia.etiqueta if i.dependencia else "Por diagnosticar" }}</td>
+            <td data-etiqueta="Estado"><span class="insignia {{ i.estado | color_estado }}">{{ i.estado.etiqueta }}</span></td>
+            <td data-etiqueta="Fibra">
               {% if i.estado_fibra %}
                 <span class="insignia {{ i.estado_fibra | color_estado }}">{{ i.estado_fibra.etiqueta }}</span>
               {% else %}-{% endif %}
             </td>
-            <td class="pequeno">{{ i.asignado_a.nombre_completo if i.asignado_a else "Sin asignar" }}</td>
-            <td class="pequeno nowrap">{{ i.creado_en | fecha }}</td>
+            <td class="pequeno" data-etiqueta="Asignado a">{{ i.asignado_a.nombre_completo if i.asignado_a else "Sin asignar" }}</td>
+            <td class="pequeno nowrap" data-etiqueta="Creado">{{ i.creado_en | fecha }}</td>
           </tr>
         {% endfor %}
       </tbody>

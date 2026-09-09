@@ -428,10 +428,182 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .flex-entre { display: flex; gap: .5rem; align-items: center; justify-content: space-between; }
 .envolver { flex-wrap: wrap; }
 
-@media (max-width: 760px) {
-  .barra { height: auto; flex-wrap: wrap; padding: .6rem .8rem; gap: .6rem; }
-  .barra nav { order: 3; width: 100%; }
-  .contenido { padding: .8rem; }
+/* =========================================================================
+   MOVIL Y TACTIL
+   El sistema se usa en campo desde el telefono, asi que esto no es un
+   remate: es la mitad del uso real.
+   ========================================================================= */
+
+.solo-movil { display: none; }
+.hamburguesa { display: none; }
+
+/* ---------- Objetivos tactiles ------------------------------------------ */
+/* Con el dedo hace falta altura, no la de un puntero de raton. */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+  .btn-sm { min-height: 40px; padding: .5rem .8rem; font-size: .85rem; }
+  .campana { min-width: 44px; min-height: 44px; }
+  .pestanas a { padding: .8rem 1rem; }
+  .chip { padding: .55rem .9rem; }
+  .casillas label { padding: .7rem .9rem; }
+  input[type=checkbox] { width: 20px; height: 20px; }
+  .notif { padding: .9rem .85rem; }
+  .cerrar { min-width: 44px; min-height: 44px; }
+  .columna > header .btn-sm { min-height: 34px; padding: .3rem .55rem; }
+  /* Sin hover real, el resaltado se queda pegado tras tocar. */
+  .btn:hover, .tarjeta:hover, tbody tr:hover { background: inherit; }
+}
+
+@media (max-width: 860px) {
+  .no-movil { display: none !important; }
+  .solo-movil { display: block; }
+
+  /* ---------- Barra: marca, campana y todo lo demas tras el menu -------- */
+  .barra { height: 52px; padding: 0 .5rem; gap: .5rem; flex-wrap: nowrap; }
+  .barra .marca { font-size: .92rem; color: #fff; }
+  .barra .marca span { display: none; }
+  .barra .derecha { margin-left: auto; gap: .25rem; }
+
+  .hamburguesa {
+    display: flex; flex-direction: column; justify-content: center; gap: 4px;
+    width: 42px; height: 42px; padding: 0 9px; flex: none;
+    background: none; border: none; cursor: pointer;
+  }
+  .hamburguesa span {
+    display: block; height: 2px; width: 100%; background: #fff; border-radius: 2px;
+  }
+
+  /* El menu ocupa la pantalla: enlaces grandes, faciles de acertar. */
+  .barra nav {
+    display: none;
+    position: fixed; inset: 52px 0 0 0;
+    flex-direction: column; gap: .15rem;
+    background: var(--marca);
+    padding: .6rem; overflow-y: auto; z-index: 45;
+  }
+  .barra nav.desplegado { display: flex; }
+  .barra nav a { padding: .9rem 1rem; font-size: 1rem; opacity: .95; }
+  .barra nav a.activo { background: rgba(255, 255, 255, .22); }
+
+  .menu-crear { margin-bottom: .4rem; padding-bottom: .5rem;
+                border-bottom: 1px solid rgba(255, 255, 255, .25); }
+  .menu-pie { margin-top: .5rem; padding-top: .5rem;
+              border-top: 1px solid rgba(255, 255, 255, .25); }
+  .menu-crear a, .menu-pie a {
+    display: block; color: #fff; opacity: .95;
+    padding: .9rem 1rem; border-radius: var(--radio-sm); font-weight: 500;
+  }
+  .menu-crear a { background: rgba(255, 255, 255, .16); margin-bottom: .3rem; }
+
+  /* ---------- Avisos: abajo, donde llega el pulgar y no tapan nada ----- */
+  .avisos { top: auto; bottom: .6rem; left: .6rem; right: .6rem; width: auto; }
+
+  .panel-notif {
+    position: fixed; top: 52px; left: 0; right: 0; width: auto;
+    border-radius: 0; border-left: none; border-right: none; max-height: 75vh;
+  }
+
+  .contenido { padding: .7rem; }
+  h1 { font-size: 1.2rem; }
+  .encabezado { gap: .6rem; margin-bottom: .8rem; }
+  .panel { padding: .8rem; }
+
+  /* ---------- Tablero: en vertical, no en carrusel horizontal ---------- */
+  /* Seis columnas de 268 px en una pantalla de 360 obligan a barrer de
+     lado para encontrar cualquier cosa. Apiladas se recorren de un scroll. */
+  .tablero, .tablero.con-ampliada {
+    display: block; grid-auto-flow: unset; overflow-x: visible;
+  }
+  .tablero .columna { margin-bottom: .6rem; }
+  .tablero.con-ampliada .columna.reducida,
+  .tablero.con-ampliada .columna.ampliada { flex: none; width: auto; }
+  .columna > header { position: sticky; top: 52px; z-index: 5; background: var(--superficie-2); }
+  .lista, .columna.ampliada .lista,
+  .tablero.con-ampliada .columna.reducida .lista { max-height: none; }
+  .columna.ampliada .lista { grid-template-columns: 1fr; }
+  /* En movil la columna reducida se muestra entera: no hay sitio para tiras. */
+  .tablero.con-ampliada .columna.reducida .tarjeta .titulo,
+  .tablero.con-ampliada .columna.reducida .tarjeta .acciones-tarjeta { display: block; }
+
+  .tarjeta .acciones-tarjeta .btn { flex: 1 1 auto; justify-content: center; }
+
+  /* ---------- Formularios ---------------------------------------------- */
+  .filtros .campo, .filtros .campo.ancho { min-width: 100%; }
+  .filtros .acciones .btn { flex: 1 1 auto; justify-content: center; }
+  .rejilla, .rejilla-2 { grid-template-columns: 1fr; }
+  .detalle { gap: .7rem; }
+
+  /* ---------- Modal como hoja inferior --------------------------------- */
+  .velo { align-items: flex-end; padding: 0; }
+  .modal { width: 100%; max-height: 92vh; border-radius: var(--radio) var(--radio) 0 0; }
+  .modal footer { flex-direction: column-reverse; }
+  .modal footer .btn { width: 100%; justify-content: center; }
+
+  .graficos { grid-template-columns: 1fr; }
+  .grafico .lienzo { height: 220px; }
+  .metrica .valor { font-size: 1.5rem; }
+  .fotos { grid-template-columns: 1fr; }
+  .paginacion .info { width: 100%; text-align: center; margin: 0 0 .4rem; }
+  .paginacion .btn { flex: 1 1 auto; justify-content: center; }
+}
+
+/* ---------- Tablas anchas -> fichas apiladas ---------------------------- */
+/* Once columnas no caben en un telefono; con scroll lateral se pierde de
+   vista el folio, que es justo la referencia. Cada fila pasa a ser una ficha
+   con su etiqueta al lado del dato. */
+@media (max-width: 720px) {
+  table.apilable, table.apilable tbody, table.apilable tr, table.apilable td {
+    display: block; width: 100%;
+  }
+  table.apilable thead { display: none; }
+  .tabla-contenedor:has(table.apilable) { border: none; overflow: visible; }
+  table.apilable { background: none; }
+  table.apilable tr {
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+    padding: .3rem 0;
+    margin-bottom: .6rem;
+  }
+  table.apilable td {
+    border: none;
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; padding: .3rem .75rem; text-align: right;
+  }
+  table.apilable td::before {
+    content: attr(data-etiqueta);
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .4px;
+    color: var(--texto-tenue); font-weight: 700;
+    text-align: left; flex: none;
+  }
+  /* La primera celda (el folio) hace de titulo de la ficha. */
+  table.apilable td:first-child {
+    background: var(--superficie-2);
+    border-bottom: 1px solid var(--borde);
+    padding: .5rem .75rem; margin-bottom: .3rem; font-size: 1rem;
+  }
+  table.apilable td.num { text-align: right; }
+  table.apilable td:empty { display: none; }
+}
+
+/* ---------- iOS: evitar el zoom automatico al enfocar un campo --------- */
+/* Safari amplia la pagina si la fuente del campo baja de 16 px, y luego el
+   usuario tiene que volver a alejar a mano. */
+@media (max-width: 860px) {
+  input[type=text], input[type=password], input[type=date], input[type=number],
+  input[type=email], input[type=tel], input[type=search], input[type=file],
+  select, textarea { font-size: 16px; }
+}
+
+@media (max-width: 420px) {
+  .contenido { padding: .5rem; }
+  .panel { padding: .7rem; border-radius: var(--radio-sm); }
+  .tarjetas { grid-template-columns: 1fr 1fr; gap: .5rem; }
+  .metrica { padding: .6rem .7rem; }
+  .metrica .valor { font-size: 1.3rem; }
+  .metrica .etiqueta { font-size: .7rem; }
+  .acciones .btn { flex: 1 1 auto; justify-content: center; }
 }
 
 @media print {
@@ -512,3 +684,29 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   gap: .25rem; color: var(--texto-tenue); background: var(--superficie-2);
 }
 .foto .hueco .icono { font-size: 1.6rem; opacity: .5; }
+
+/* Celda de acciones de una fila: en linea en escritorio, botones a lo ancho
+   en movil (donde la fila ya es una ficha). */
+.acciones-fila { white-space: nowrap; }
+@media (max-width: 720px) {
+  table.apilable td.acciones-fila {
+    display: flex; flex-wrap: wrap; gap: .4rem;
+    border-top: 1px solid var(--borde); margin-top: .3rem;
+    padding-top: .55rem; padding-bottom: .2rem;
+  }
+  table.apilable td.acciones-fila::before { display: none; }
+  table.apilable td.acciones-fila form { flex: 1 1 auto; display: block; }
+  table.apilable td.acciones-fila > .btn,
+  table.apilable td.acciones-fila .btn { width: 100%; justify-content: center; }
+  table.apilable td.acciones-fila > .btn { flex: 1 1 auto; }
+}
+
+/* Filtros secundarios: en escritorio forman parte del mismo flex; en movil se
+   pliegan tras el boton "Mas filtros" para no empujar los resultados fuera de
+   la pantalla. `display: contents` deja que los campos sigan participando del
+   flex del padre cuando estan visibles. */
+.filtros-extra { display: contents; }
+@media (max-width: 860px) {
+  .filtros-extra { display: none; }
+  .filtros-extra.abierto { display: contents; }
+}

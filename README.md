@@ -110,6 +110,31 @@ como **Recomendado** porque sin él el operador no puede coordinar el acceso al 
 
 ---
 
+## Uso desde el telefono
+
+El sistema esta pensado para usarse en campo, asi que la vista movil no es un
+remate: es la mitad del uso real.
+
+- **Menu plegable.** En pantalla estrecha la barra deja a la vista la marca y la
+  campana; navegacion, "nueva orden", "nueva interrupcion", mi cuenta y salir se
+  agrupan tras el boton de menu, con enlaces grandes.
+- **Tablero en vertical.** Las columnas se apilan a lo ancho de la pantalla en
+  lugar de formar un carrusel horizontal: se recorren con un scroll normal y la
+  cabecera de cada estado queda fija. Arrastrar exige mantener pulsado un
+  momento, para que deslizar el dedo no se lleve una tarjeta por accidente.
+- **Tablas convertidas en fichas.** Las siete tablas del sistema (busqueda,
+  historico, auditoria, usuarios, dashboard y los dos listados) pasan a fichas
+  con la etiqueta al lado de cada dato, en vez de obligar a barrer de lado.
+- **Filtros plegables.** En `/buscar` solo queda a la vista el cuadro de
+  busqueda; los otros doce filtros se despliegan con un boton.
+- **Botones a medida del dedo:** minimo 44 px de alto en pantallas tactiles.
+- **Sin zoom automatico en iOS:** los campos usan 16 px en movil, que es el
+  umbral por debajo del cual Safari amplia la pagina sola al enfocar.
+- Modales como hoja inferior, avisos abajo (al alcance del pulgar), graficos y
+  formularios a una columna.
+
+---
+
 ## La bandeja de fibra
 
 Pensada para cuando se acumula trabajo:

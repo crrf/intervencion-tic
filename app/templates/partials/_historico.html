@@ -19,7 +19,7 @@
 
 {% if datos.filas %}
   <div class="tabla-contenedor">
-    <table>
+    <table class="apilable">
       <thead>
         <tr>
           <th>Folio</th>
@@ -38,22 +38,22 @@
       <tbody>
         {% for f in datos.filas %}
           <tr>
-            <td class="mono nowrap"><a href="{{ f.url }}">{{ f.folio }}</a></td>
-            <td class="mono">{{ f.identificador_externo }}</td>
-            <td class="nowrap pequeno">{{ f.tipo_etiqueta }}</td>
-            <td>{{ f.nombre_cliente }}</td>
-            <td class="pequeno">{{ f.creador_nombre or "-" }}</td>
-            <td class="pequeno">{{ f.asignado_nombre or "Sin asignar" }}</td>
-            <td><span class="insignia {{ f.estado | color_estado }}">{{ f.estado_etiqueta }}</span></td>
-            <td class="pequeno">
+            <td class="mono nowrap" data-etiqueta="Folio"><a href="{{ f.url }}">{{ f.folio }}</a></td>
+            <td class="mono" data-etiqueta="Identificador">{{ f.identificador_externo }}</td>
+            <td class="nowrap pequeno" data-etiqueta="Tipo">{{ f.tipo_etiqueta }}</td>
+            <td data-etiqueta="Cliente">{{ f.nombre_cliente }}</td>
+            <td class="pequeno" data-etiqueta="Creado por">{{ f.creador_nombre or "-" }}</td>
+            <td class="pequeno" data-etiqueta="Asignado a">{{ f.asignado_nombre or "Sin asignar" }}</td>
+            <td data-etiqueta="Estado final"><span class="insignia {{ f.estado | color_estado }}">{{ f.estado_etiqueta }}</span></td>
+            <td class="pequeno" data-etiqueta="Fibra">
               {% if f.estado_fibra_etiqueta %}
                 <span class="insignia {{ f.estado_fibra | color_estado }}">{{ f.estado_fibra_etiqueta }}</span>
                 {% if f.agente_nombre %}<div class="tenue">{{ f.agente_nombre }}</div>{% endif %}
               {% else %}-{% endif %}
             </td>
-            <td class="pequeno nowrap">{{ f.creado_en | fecha }}</td>
-            <td class="pequeno nowrap">{{ f.cerrado_en | fecha }}</td>
-            <td class="pequeno nowrap">{{ f.minutos_resolucion | duracion }}</td>
+            <td class="pequeno nowrap" data-etiqueta="Creado">{{ f.creado_en | fecha }}</td>
+            <td class="pequeno nowrap" data-etiqueta="Cerrado">{{ f.cerrado_en | fecha }}</td>
+            <td class="pequeno nowrap" data-etiqueta="Resolucion">{{ f.minutos_resolucion | duracion }}</td>
           </tr>
         {% endfor %}
       </tbody>

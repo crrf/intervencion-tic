@@ -15,13 +15,29 @@
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'>
 
 {% if current_user.is_authenticated %}
-<header class="barra">
-  <div class="marca">
+{#
+  En pantallas anchas la barra se ve entera. En movil, la navegacion y las
+  acciones secundarias se pliegan tras el boton de menu: en un telefono no
+  caben ocho enlaces mas dos botones en una sola linea.
+#}
+<header class="barra" x-data="{ menu: false, avisos: false }" @keydown.escape.window="menu = false">
+  <button class="hamburguesa" type="button" aria-label="Menu"
+          :aria-expanded="menu" @click="menu = !menu">
+    <span></span><span></span><span></span>
+  </button>
+
+  <a class="marca" href="{{ url_for('tablero.inicio') }}">
     Intervencion Tecnica
     <span>Tickets e incidencias</span>
-  </div>
+  </a>
 
-  <nav>
+  <nav :class="{ desplegado: menu }" @click="menu = false">
+    {% if puede_gestionar() %}
+      <div class="solo-movil menu-crear">
+        <a href="{{ url_for('ordenes.nueva') }}">+ Nueva orden de trabajo</a>
+        <a href="{{ url_for('interrupciones.nueva') }}">+ Nueva interrupcion</a>
+      </div>
+    {% endif %}
     {% if not solo_fibra %}
       <a href="{{ url_for('tablero.ver') }}" class="{{ 'activo' if request.endpoint == 'tablero.ver' }}">Tablero</a>
     {% endif %}
@@ -36,12 +52,18 @@
     {% if current_user.tiene_rol(RolUsuario.ADMIN) %}
       <a href="{{ url_for('admin.usuarios') }}" class="{{ 'activo' if request.blueprint == 'admin' }}">Usuarios</a>
     {% endif %}
+
+    {# Dentro del menu desplegado en movil, al final de los enlaces. #}
+    <div class="solo-movil menu-pie">
+      <a href="{{ url_for('auth.cuenta') }}">Mi cuenta</a>
+      <a href="{{ url_for('auth.logout') }}">Cerrar sesion</a>
+    </div>
   </nav>
 
   <div class="derecha" x-data="{ abierto: false }">
     {% if puede_gestionar() %}
-      <a class="btn btn-sm" href="{{ url_for('ordenes.nueva') }}">+ Orden</a>
-      <a class="btn btn-sm" href="{{ url_for('interrupciones.nueva') }}">+ Interrupcion</a>
+      <a class="btn btn-sm no-movil" href="{{ url_for('ordenes.nueva') }}">+ Orden</a>
+      <a class="btn btn-sm no-movil" href="{{ url_for('interrupciones.nueva') }}">+ Interrupcion</a>
     {% endif %}
 
     <button class="campana" type="button" title="Notificaciones"
@@ -61,12 +83,12 @@
          hx-swap="innerHTML">
     </div>
 
-    <div class="usuario">
+    <div class="usuario no-movil">
       <strong>{{ current_user.nombre_completo }}</strong>
       <small>{{ current_user.etiqueta_roles }}</small>
     </div>
-    <a class="btn btn-sm" href="{{ url_for('auth.cuenta') }}" title="Mi cuenta">&#9881;</a>
-    <a class="btn btn-sm" href="{{ url_for('auth.logout') }}">Salir</a>
+    <a class="btn btn-sm no-movil" href="{{ url_for('auth.cuenta') }}" title="Mi cuenta">&#9881;</a>
+    <a class="btn btn-sm no-movil" href="{{ url_for('auth.logout') }}">Salir</a>
   </div>
 </header>
 {% endif %}

@@ -99,6 +99,12 @@
         ghostClass: "sortable-ghost",
         chosenClass: "sortable-chosen",
         filter: ".fija",
+        // En pantalla tactil hay que mantener pulsado un momento para
+        // arrastrar: sin esta espera, cualquier intento de desplazar la lista
+        // con el dedo se lleva la tarjeta. Con raton no aplica.
+        delay: 220,
+        delayOnTouchOnly: true,
+        touchStartThreshold: 5,
         onStart: function () { window.__arrastrando = true; },
         onEnd: function (evt) {
           window.__arrastrando = false;
