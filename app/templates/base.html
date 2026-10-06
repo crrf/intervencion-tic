@@ -35,7 +35,8 @@
     {% if puede_gestionar() %}
       <div class="solo-movil menu-crear">
         <a href="{{ url_for('ordenes.nueva') }}">+ Nueva orden de trabajo</a>
-        <a href="{{ url_for('interrupciones.nueva') }}">+ Nueva interrupcion</a>
+        <a href="{{ url_for('interrupciones.nueva') }}">+ Nueva interrupcion de enlace</a>
+        <a href="{{ url_for('interrupciones.nueva_wifi') }}">+ Nueva interrupcion de sitio wifi</a>
       </div>
     {% endif %}
     {% if not solo_fibra %}
@@ -64,6 +65,8 @@
     {% if puede_gestionar() %}
       <a class="btn btn-sm no-movil" href="{{ url_for('ordenes.nueva') }}">+ Orden</a>
       <a class="btn btn-sm no-movil" href="{{ url_for('interrupciones.nueva') }}">+ Interrupcion</a>
+      <a class="btn btn-sm no-movil" href="{{ url_for('interrupciones.nueva_wifi') }}"
+         title="Interrupcion de un sitio wifi">+ Sitio wifi</a>
     {% endif %}
 
     <button class="campana" type="button" title="Notificaciones"

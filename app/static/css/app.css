@@ -10,20 +10,31 @@
   --superficie-2: #f8fafc;
   --borde: #e2e8f0;
   --borde-fuerte: #cbd5e1;
+  /* Borde de los controles de formulario y botones: WCAG 1.4.11 pide 3:1
+     para el contorno de un componente. El --borde-fuerte se queda para
+     separadores decorativos, que estan exentos. */
+  --borde-campo: #7791b0;
   --texto: #0f172a;
-  --texto-suave: #64748b;
-  --texto-tenue: #94a3b8;
+  /* Los dos grises de apoyo pasan AA (4.5:1) sobre fondo, superficie y
+     superficie-2, y mantienen entre si 1.4:1 para que la jerarquia siga
+     leyendose. Medido, no elegido a ojo. */
+  --texto-suave: #4b5869;
+  --texto-tenue: #5d708c;
 
   --marca: #0f4c81;
   --marca-clara: #1d6fb8;
   --marca-fondo: #e8f1f9;
 
-  --gris: #64748b;      --gris-fondo: #f1f5f9;
-  --azul: #1d6fb8;      --azul-fondo: #e3eefa;
-  --ambar: #b45309;     --ambar-fondo: #fdf0dc;
+  /* Cada par texto/fondo de insignia cumple AA: la insignia es texto de
+     0.72rem en negrita, asi que el umbral es 4.5:1, no 3:1. */
+  --gris: #5e6d82;      --gris-fondo: #f1f5f9;
+  --azul: #1b68ad;      --azul-fondo: #e3eefa;
+  --ambar: #aa4f09;     --ambar-fondo: #fdf0dc;
   --violeta: #6d28d9;   --violeta-fondo: #efe8fd;
   --rojo: #b91c1c;      --rojo-fondo: #fdeaea;
-  --verde: #15803d;     --verde-fondo: #e6f5ec;
+  --verde: #14793a;     --verde-fondo: #e6f5ec;
+  --cian: #0e7490;      --cian-fondo: #ddf2f7;
+  --fucsia: #a21caf;    --fucsia-fondo: #fae8ff;
 
   --radio: 10px;
   --radio-sm: 6px;
@@ -39,18 +50,21 @@
     --superficie-2: #182334;
     --borde: #263449;
     --borde-fuerte: #35496a;
+    --borde-campo: #506ea0;
     --texto: #e8eefc;
     --texto-suave: #9fb0cc;
-    --texto-tenue: #7488a8;
+    --texto-tenue: #798cab;
     --marca: #4a9de0;
     --marca-clara: #6bb4ee;
     --marca-fondo: #16283c;
-    --gris-fondo: #1e293b;
+    --gris-fondo: #1e293b;   --gris: #8896a9;
     --azul-fondo: #14293f;   --azul: #7ab6ee;
     --ambar-fondo: #34260f;  --ambar: #f0b357;
     --violeta-fondo: #241a3d; --violeta: #b492f5;
     --rojo-fondo: #3a1717;   --rojo: #f38b8b;
     --verde-fondo: #10281a;  --verde: #6fd694;
+    --cian-fondo: #0c2a31;   --cian: #5cc8dd;
+    --fucsia-fondo: #2e1036; --fucsia: #e9a2f7;
     --sombra: 0 1px 2px rgba(0, 0, 0, .4);
   }
 }
@@ -123,7 +137,7 @@ h3 { font-size: .95rem; }
 /* ---------- Botones ------------------------------------------------------ */
 .btn {
   display: inline-flex; align-items: center; gap: .4rem;
-  border: 1px solid var(--borde-fuerte);
+  border: 1px solid var(--borde-campo);
   background: var(--superficie);
   color: var(--texto);
   padding: .45rem .85rem;
@@ -146,7 +160,7 @@ input[type=text], input[type=password], input[type=date], input[type=number],
 input[type=email], input[type=file], select, textarea {
   width: 100%;
   padding: .5rem .6rem;
-  border: 1px solid var(--borde-fuerte);
+  border: 1px solid var(--borde-campo);
   border-radius: var(--radio-sm);
   background: var(--superficie);
   color: var(--texto);
@@ -183,6 +197,8 @@ textarea { min-height: 84px; resize: vertical; }
 .insignia.violeta { background: var(--violeta-fondo); color: var(--violeta); }
 .insignia.rojo    { background: var(--rojo-fondo);    color: var(--rojo); }
 .insignia.verde   { background: var(--verde-fondo);   color: var(--verde); }
+.insignia.cian    { background: var(--cian-fondo);    color: var(--cian); }
+.insignia.fucsia  { background: var(--fucsia-fondo);  color: var(--fucsia); }
 
 /* ---------- Avisos ------------------------------------------------------- */
 .avisos { position: fixed; top: 68px; right: 1rem; z-index: 60; width: min(380px, 92vw); }
@@ -296,7 +312,7 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .filtros .campo.ancho { min-width: 260px; flex: 1; }
 .chips { display: flex; gap: .35rem; flex-wrap: wrap; }
 .chip {
-  padding: .3rem .7rem; border-radius: 999px; border: 1px solid var(--borde-fuerte);
+  padding: .3rem .7rem; border-radius: 999px; border: 1px solid var(--borde-campo);
   background: var(--superficie); font-size: .8rem; font-weight: 500; color: var(--texto-suave);
 }
 .chip.activo { background: var(--marca); border-color: var(--marca); color: #fff; }
@@ -392,6 +408,7 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .metrica.acento-verde .valor { color: var(--verde); }
 .metrica.acento-ambar .valor { color: var(--ambar); }
 .metrica.acento-violeta .valor { color: var(--violeta); }
+.metrica.acento-cian .valor { color: var(--cian); }
 
 .graficos { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
 .grafico { background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio); padding: 1rem; box-shadow: var(--sombra); }

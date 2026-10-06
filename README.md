@@ -65,6 +65,7 @@ minuto.
 | `despachador1` | Despachador | la de `SEED_PASSWORD` |
 | `operador1` · `operador2` · `operador3` | Operador | la de `SEED_PASSWORD` |
 | `fibra1` · `fibra2` | Agente de fibra | la de `SEED_PASSWORD` |
+| `wifi1` | Técnico de wifi | la de `SEED_PASSWORD` |
 | `mixto1` | **Despachador + Operador** | la de `SEED_PASSWORD` |
 
 ---
@@ -75,10 +76,21 @@ minuto.
 
 ```
 NUEVA ──(despachador asigna)──► ASIGNADA ──(operador)──► EN PROCESO
-                                                          ├─► CERRADA               (exige comentario)
+                                                          ├─► OK DEL OPERADOR      (exige comentario)
                                                           └─► ABIERTA CON MOTIVO    (exige motivo + comentario)
+
+ABIERTA CON MOTIVO ──(operador)──► EN PROCESO · OK DEL OPERADOR
+
+OK DEL OPERADOR ──(despachador)──► CERRADA            (cierre en SIPREC, exige comentario)
+                └─(despachador)──► EN PROCESO         (devuelve al operador, exige comentario)
+
 CERRADA ──(solo admin, queda auditado)──► EN PROCESO
 ```
+
+El operador **no cierra** una orden de trabajo: cuando termina da su **OK**, y la orden queda en
+la columna *OK del operador*, a la vista del despachador (que ademas recibe una notificacion).
+El despachador es quien la marca **cerrada en SIPREC** o, si el OK no procede, la **devuelve
+al operador** explicando qué falta. El dashboard muestra cuantas ordenes esperan ese cierre.
 
 ### Interrupción
 
@@ -90,10 +102,58 @@ NUEVA ──(despachador asigna)──► ASIGNADA ──(operador)──► EN 
                                                           └─► ABIERTA / OTRO MOTIVO
 ```
 
+### Sitios wifi
+
+Hay **tres puertas de creación**, cada una con su formulario, y las tres están en la barra
+superior (y en el menú, en móvil):
+
+| Botón | Crea | La atiende |
+|---|---|---|
+| **+ Orden** | Orden de trabajo | Un operador |
+| **+ Interrupción** | Interrupción de *enlace de cliente* | Un operador |
+| **+ Sitio wifi** | Interrupción de *sitio wifi* | Un técnico de wifi |
+
+Cada formulario **fija su categoría**: no hay una casilla que se pueda combinar mal. El de sitio
+wifi ofrece primero a los técnicos de wifi (y a los operadores en un segundo grupo, por si no
+hay ninguno disponible), y avisa si no existe ningún técnico activo. El servidor valida igual
+la combinación, no se fía del formulario.
+
+La **categoría** (*Enlace de cliente* o *Sitio wifi*) es la que decide a quién se le puede
+entregar:
+
+- Al **técnico de wifi** —el que va al sitio a detectar la falla y, si puede, a resolverla— solo
+  se le pueden asignar interrupciones de **sitio wifi**. El sistema rechaza cualquier otra.
+- Una de sitio wifi también se le puede asignar a un operador normal, por si el técnico no está
+  disponible.
+
+Con su interrupción asignada, el técnico de wifi trabaja igual que un operador: la toma, clasifica
+la dependencia, la cierra, la deja abierta con motivo o la deriva a fibra si resulta ser capa
+física. No ve órdenes de trabajo ni interrupciones que no sean suyas.
+
+La categoría se corrige después desde el detalle (solo despachador o admin). Si la interrupción
+está en manos de un técnico de wifi, primero hay que reasignarla: el sistema no lo deja quedarse
+con una que ya no es de sitio wifi.
+
 Cuando una interrupción se deriva, aparece en la bandeja del **agente de fibra**, que solo puede
 mover la columna `estado_fibra` (En revisión → Fibra OK / Fibra con falla) y comentar. El operador
 ve esa respuesta y decide el cierre. El agente de fibra **no** crea, no asigna, no cierra y no ve
 órdenes de trabajo.
+
+### Color y contraste
+
+La paleta vive entera en variables CSS, con un juego para el tema claro y otro para el oscuro
+(`prefers-color-scheme`). Dos reglas que `tests/test_paleta.py` comprueba en cada ejecución:
+
+- **Todo el texto cumple WCAG 2.1 AA**: 4.5:1 para texto normal (incluidas las insignias, que son
+  texto pequeño en negrita) y 3:1 para las cifras grandes del dashboard. El contorno de los
+  campos y botones usa `--borde-campo`, con 3:1 contra el fondo, como pide el criterio 1.4.11; los
+  bordes que solo separan paneles son decorativos y quedan exentos.
+- **Ningún color significa dos cosas a la vez.** El fucsia es solo de *sitio wifi*, el violeta
+  solo de *derivada a fibra*, el cian solo de *OK del operador*. Importa porque esas insignias
+  conviven en la misma tarjeta.
+
+Los tres grises de texto mantienen entre sí al menos 1.2:1 para que la jerarquía se siga
+leyendo: cumplir el contraste no debería costar que todo se vea del mismo tono.
 
 ### Teléfono de contacto del cliente
 
@@ -226,7 +286,7 @@ permiso sobre el ticket y redirige a una **URL prefirmada** de 15 minutos.
 
 Reservados a `admin` y `despachador`:
 
-- **`/buscar`** — por identificador externo (`ED123456`), folio, cliente, texto libre en
+- **`/buscar`** — por identificador externo (`ED123456`, `FD1234`…), folio, cliente, texto libre en
   descripciones y comentarios, más filtros de tipo, estado, dependencia, prioridad, operador,
   creador, agente de fibra y rango de fechas. Exporta a CSV.
 - **`/reportes/historico`** — qué pasó en un periodo: a quién se asignó cada ticket, en qué estado
@@ -236,8 +296,10 @@ Reservados a `admin` y `despachador`:
 - **`/dashboard`** — tabla comparativa por operador (asignados, soluciones, pendientes, abiertos con
   motivo, derivados a fibra, tiempo promedio, % de cierre), gráficos y desempeño de fibra.
 
-Las **soluciones** se atribuyen desde el historial a quien realmente ejecutó el cierre, no a quien
-figuraba como asignado: un ticket que cambió de manos se le acredita a quien lo resolvió.
+Las **soluciones** se atribuyen desde el historial a quien realmente dio el trabajo por terminado
+—el **OK** en las órdenes (el cierre en SIPREC es del despachador, no del operador) y el
+**cierre** en las interrupciones—, no a quien figuraba como asignado: un ticket que cambió de
+manos se le acredita a quien lo resolvió.
 
 ---
 

@@ -1,15 +1,20 @@
 """Agregados del dashboard de desempeno.
 
 Todas las cifras se calculan sobre la CTE unificada de `consultas.py`, salvo
-las "soluciones", que se atribuyen desde el historial: cuenta quien ejecuto
-realmente la transicion a Cerrada, no a quien figuraba como asignado. Asi un
-ticket que cambio de manos se le acredita a quien lo resolvio.
+las "soluciones", que se atribuyen desde el historial: cuenta quien dio el
+trabajo por terminado, no quien figuraba como asignado. Asi un ticket que
+cambio de manos se le acredita a quien lo resolvio.
+
+Que cuenta como solucion depende del tipo: en las ordenes es el OK del
+operador (el cierre en SIPREC lo ejecuta despues el despachador, y no es
+merito del operador); en las interrupciones, el cierre, que sigue siendo del
+operador.
 """
 from __future__ import annotations
 
 from datetime import timedelta
 
-from sqlalchemy import Date, cast, func, select
+from sqlalchemy import Date, cast, distinct, func, select
 
 from app.extensions import db
 from app.models.enums import (
@@ -29,6 +34,7 @@ from app.services.consultas import cte_tickets, zona_app
 #: Se deriva del enum para que renombrar el estado no rompa las metricas.
 ETIQUETA_CERRADA = EstadoOrden.CERRADA.etiqueta
 ETIQUETA_DERIVADA = EstadoInterrupcion.DERIVADA_FIBRA.etiqueta
+ETIQUETA_OK_OPERADOR = EstadoOrden.OK_OPERADOR.etiqueta
 
 ESTADOS_ABIERTOS_CON_MOTIVO = (
     EstadoOrden.ABIERTA_CON_MOTIVO.name,
@@ -68,6 +74,9 @@ def resumen(rango, usuario=None) -> dict:
             func.count()
             .filter(t.c.estado.in_(ESTADOS_ABIERTOS_CON_MOTIVO))
             .label("abiertos_con_motivo"),
+            func.count()
+            .filter(t.c.estado == EstadoOrden.OK_OPERADOR.name)
+            .label("ok_por_cerrar"),
             func.avg(_minutos(t.c.creado_en, t.c.cerrado_en))
             .filter(t.c.cerrado_en.is_not(None), t.c.cerrado_en.between(inicio, fin))
             .label("prom_resolucion"),
@@ -79,6 +88,35 @@ def resumen(rango, usuario=None) -> dict:
         int(datos["prom_resolucion"]) if datos["prom_resolucion"] is not None else None
     )
     return datos
+
+
+def _soluciones_por_usuario(inicio, fin) -> dict[int, int]:
+    """Tickets que cada usuario dio por resueltos dentro del periodo.
+
+    En las ordenes la solucion es el OK del operador; se siguen contando las
+    cerradas para no perder las que se cerraron asi antes de que el cierre en
+    SIPREC pasara al despachador. Al contar tickets DISTINTOS, una orden que va y
+    vuelve (OK, devuelta, OK otra vez) sigue siendo una sola solucion, y quien
+    da el OK y ademas cierra no se la cobra dos veces.
+    """
+    totales: dict[int, int] = {}
+    for columna, etiquetas in (
+        (Historial.orden_id, (ETIQUETA_OK_OPERADOR, ETIQUETA_CERRADA)),
+        (Historial.interrupcion_id, (ETIQUETA_CERRADA,)),
+    ):
+        filas = db.session.execute(
+            select(Historial.usuario_id, func.count(distinct(columna)))
+            .where(
+                Historial.campo == "estado",
+                Historial.valor_nuevo.in_(etiquetas),
+                columna.is_not(None),
+                Historial.creado_en.between(inicio, fin),
+            )
+            .group_by(Historial.usuario_id)
+        ).all()
+        for usuario_id, n in filas:
+            totales[usuario_id] = totales.get(usuario_id, 0) + n
+    return totales
 
 
 # ---------------------------------------------------------------------------
@@ -112,17 +150,8 @@ def por_operador(rango, usuario=None) -> list[dict]:
     ).mappings().all()
     por_id = {f["operador_id"]: dict(f) for f in agregados}
 
-    # "Soluciones": quien ejecuto la transicion a Cerrada dentro del periodo.
-    cierres = db.session.execute(
-        select(Historial.usuario_id, func.count().label("n"))
-        .where(
-            Historial.campo == "estado",
-            Historial.valor_nuevo == ETIQUETA_CERRADA,
-            Historial.creado_en.between(inicio, fin),
-        )
-        .group_by(Historial.usuario_id)
-    ).all()
-    soluciones = {uid: n for uid, n in cierres}
+    # "Soluciones": los tickets que cada quien dio por resueltos en el periodo.
+    soluciones = _soluciones_por_usuario(inicio, fin)
 
     # Derivaciones a fibra hechas por cada operador en el periodo.
     derivaciones = db.session.execute(
@@ -136,11 +165,13 @@ def por_operador(rango, usuario=None) -> list[dict]:
     ).all()
     derivados = {uid: n for uid, n in derivaciones}
 
+    # El tecnico de wifi resuelve interrupciones igual que un operador, asi que
+    # su trabajo tiene que verse en la misma tabla.
     operadores = (
         db.session.execute(
             select(Usuario)
             .join(UsuarioRol, UsuarioRol.usuario_id == Usuario.id)
-            .where(UsuarioRol.rol == RolUsuario.OPERADOR)
+            .where(UsuarioRol.rol.in_([RolUsuario.OPERADOR, RolUsuario.TECNICO_WIFI]))
             .order_by(Usuario.nombre_completo)
         )
         .scalars()
@@ -357,6 +388,7 @@ def panel_completo(rango, usuario=None) -> dict:
 __all__ = [
     "ETIQUETA_CERRADA",
     "ETIQUETA_DERIVADA",
+    "ETIQUETA_OK_OPERADOR",
     "panel_completo",
     "por_agente_fibra",
     "por_dependencia",

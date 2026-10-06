@@ -9,8 +9,14 @@ from sqlalchemy import Enum as SAEnum
 from app.extensions import db
 from app.models.enums import Prioridad
 
-#: Identificador del sistema externo: dos letras y seis digitos (ej. ED123456).
-PATRON_IDENTIFICADOR = re.compile(r"^[A-Z]{2}\d{6}$")
+#: Identificador del sistema externo: dos letras cualesquiera y de 4 a 8
+#: digitos (ED1234, FD12345678, WF987654...). El largo varia segun el sistema
+#: del que venga, asi que no se fija en seis.
+MIN_DIGITOS_IDENTIFICADOR = 4
+MAX_DIGITOS_IDENTIFICADOR = 8
+PATRON_IDENTIFICADOR = re.compile(
+    rf"^[A-Z]{{2}}\d{{{MIN_DIGITOS_IDENTIFICADOR},{MAX_DIGITOS_IDENTIFICADOR}}}$"
+)
 
 #: Caracteres admitidos en un telefono: digitos y separadores de uso comun.
 PATRON_TELEFONO = re.compile(r"^[\d+()\-.\s]+$")

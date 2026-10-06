@@ -23,7 +23,7 @@
             <select id="m-operador" name="asignado_a_id" required>
               <option value="">Selecciona un operador...</option>
               {% for op in operadores %}
-                <option value="{{ op.id }}">{{ op.nombre_completo }}</option>
+                <option value="{{ op.id }}">{{ op.etiqueta_asignacion }}</option>
               {% endfor %}
             </select>
           </div>

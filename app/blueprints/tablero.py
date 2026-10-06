@@ -43,6 +43,19 @@ TIPOS = {
 }
 
 
+def _tipo_inicial() -> str:
+    """Con que pestana entra cada perfil.
+
+    Quien no ve ordenes de trabajo (el tecnico de wifi) entra directo a las
+    interrupciones, para no toparse con un tablero vacio.
+    """
+    if current_user.tiene_alguno(
+        RolUsuario.ADMIN, RolUsuario.DESPACHADOR, RolUsuario.OPERADOR
+    ):
+        return "ordenes"
+    return "interrupciones"
+
+
 @bp.get("/")
 @login_required
 def inicio():
@@ -103,9 +116,9 @@ def ver():
     if current_user.roles == {RolUsuario.AGENTE_FIBRA}:
         return redirect(url_for("fibra.bandeja"))
 
-    tipo = request.args.get("tipo", "ordenes")
+    tipo = request.args.get("tipo", _tipo_inicial())
     if tipo not in TIPOS:
-        tipo = "ordenes"
+        tipo = _tipo_inicial()
     return render_template("tablero/tablero.html", **_contexto(tipo))
 
 
@@ -113,7 +126,7 @@ def ver():
 @login_required
 def columnas():
     """Refresco parcial del tablero (polling HTMX)."""
-    tipo = request.args.get("tipo", "ordenes")
+    tipo = request.args.get("tipo", _tipo_inicial())
     if tipo not in TIPOS:
         abort(404)
     return render_template("partials/_tablero.html", **_contexto(tipo))
@@ -146,7 +159,7 @@ def accion(tipo: str, ticket_id: int):
         ticket=ticket,
         tipo=tipo,
         transicion=transicion,
-        operadores=_acciones.operadores_activos() if transicion.exige_asignado else [],
+        operadores=_acciones.destinatarios_para(ticket) if transicion.exige_asignado else [],
     )
 
 

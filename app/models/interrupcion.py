@@ -1,12 +1,22 @@
 """Interrupcion: el operador diagnostica, clasifica la dependencia y decide
-si la resuelve, la deriva al agente de fibra o la deja abierta."""
+si la resuelve, la deriva al agente de fibra o la deja abierta.
+
+Nace con una categoria que pone el despachador (enlace de un cliente o sitio
+wifi). De ella depende a quien se le puede entregar: las de sitio wifi son las
+unicas que acepta el tecnico de wifi."""
 from __future__ import annotations
 
 from sqlalchemy import Enum as SAEnum
 
 from app.extensions import db
 from app.models.base import TicketMixin
-from app.models.enums import Dependencia, EstadoFibra, EstadoInterrupcion, TipoTicket
+from app.models.enums import (
+    CategoriaInterrupcion,
+    Dependencia,
+    EstadoFibra,
+    EstadoInterrupcion,
+    TipoTicket,
+)
 
 
 class Interrupcion(TicketMixin, db.Model):
@@ -18,6 +28,14 @@ class Interrupcion(TicketMixin, db.Model):
         SAEnum(EstadoInterrupcion, name="estado_interrupcion"),
         nullable=False,
         default=EstadoInterrupcion.NUEVA,
+        index=True,
+    )
+
+    # La pone el despachador al crear; decide quien puede recibirla.
+    categoria = db.Column(
+        SAEnum(CategoriaInterrupcion, name="categoria_interrupcion"),
+        nullable=False,
+        default=CategoriaInterrupcion.ENLACE_CLIENTE,
         index=True,
     )
 
@@ -67,6 +85,10 @@ class Interrupcion(TicketMixin, db.Model):
         if cual != "foto":
             raise ValueError(f"foto desconocida: {cual}")
         self.foto_key = clave
+
+    @property
+    def es_sitio_wifi(self) -> bool:
+        return self.categoria is CategoriaInterrupcion.SITIO_WIFI
 
     @property
     def en_fibra(self) -> bool:

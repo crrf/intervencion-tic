@@ -115,14 +115,49 @@ def test_si_falla_la_segunda_cara_no_queda_huerfana_la_primera(app, despachador,
 # ---------------------------------------------------------------------------
 # Datos del ticket (siguen siendo obligatorios)
 # ---------------------------------------------------------------------------
-def test_identificador_invalido(app, despachador):
-    with pytest.raises(DatosInvalidos, match="dos letras y seis digitos"):
-        _orden(despachador, identificador_externo="12345")
+@pytest.mark.parametrize(
+    "identificador",
+    [
+        "ED1234",        # el minimo: 4 digitos
+        "ED12345678",    # el maximo: 8 digitos
+        "FD123456",      # el de siempre
+        "WF98765",       # cualquier par de letras, no solo ED o FD
+        "ZZ9999",
+    ],
+)
+def test_identificadores_validos(app, despachador, identificador):
+    orden = _orden(despachador, identificador_externo=identificador)
+    assert orden.identificador_externo == identificador
+
+
+@pytest.mark.parametrize(
+    "identificador",
+    [
+        "12345",         # sin letras
+        "ED123",         # 3 digitos: se queda corto
+        "ED123456789",   # 9 digitos: se pasa
+        "E123456",       # una sola letra
+        "EDF123456",     # tres letras
+        "ED12A456",      # una letra en medio de los digitos
+        "ED",            # sin digitos
+    ],
+)
+def test_identificadores_invalidos(app, despachador, identificador):
+    with pytest.raises(DatosInvalidos, match="dos letras y entre 4 y 8 digitos"):
+        _orden(despachador, identificador_externo=identificador)
 
 
 def test_identificador_se_normaliza_a_mayusculas(app, despachador):
     orden = _orden(despachador, identificador_externo=" ed987654 ")
     assert orden.identificador_externo == "ED987654"
+
+
+def test_el_formulario_acepta_el_largo_variable(cliente, despachador):
+    """El `pattern` y el `maxlength` del HTML tienen que dejar pasar 8 digitos."""
+    cliente.post("/login", data={"usuario": despachador.usuario, "password": CLAVE})
+    html = cliente.get("/ordenes/nueva").get_data(as_text=True)
+    assert 'pattern="[A-Za-z]{2}[0-9]{4,8}"' in html
+    assert 'maxlength="10"' in html  # dos letras mas ocho digitos
 
 
 # ---------------------------------------------------------------------------
@@ -170,7 +205,8 @@ def test_no_se_cambian_fotos_de_un_ticket_cerrado(nueva_orden, despachador, oper
 
     orden = nueva_orden(despachador, asignado_a=operador)
     ejecutar_transicion(orden, operador, "estado:EN_PROCESO")
-    ejecutar_transicion(orden, operador, "estado:CERRADA", comentario="listo")
+    ejecutar_transicion(orden, operador, "estado:OK_OPERADOR", comentario="listo")
+    ejecutar_transicion(orden, despachador, "estado:CERRADA", comentario="en SIPREC")
     db.session.commit()
 
     with pytest.raises(DatosInvalidos, match="cerrado"):

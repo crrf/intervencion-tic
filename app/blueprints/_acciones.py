@@ -17,19 +17,43 @@ from app.services import tickets as servicio
 from app.services.estados import TransicionInvalida, ejecutar_transicion
 
 
-def operadores_activos() -> list[Usuario]:
-    """Todos los operadores activos, incluidos los que ademas son despachadores."""
+def _activos_con_alguno(*roles: RolUsuario) -> list[Usuario]:
+    """Usuarios activos que tienen al menos uno de esos roles, sin repetir."""
     return list(
         db.session.execute(
             select(Usuario)
             .join(UsuarioRol, UsuarioRol.usuario_id == Usuario.id)
-            .where(UsuarioRol.rol == RolUsuario.OPERADOR, Usuario.activo.is_(True))
+            .where(UsuarioRol.rol.in_(roles), Usuario.activo.is_(True))
             .order_by(Usuario.nombre_completo)
         )
         .scalars()
         .unique()
         .all()
     )
+
+
+def operadores_activos() -> list[Usuario]:
+    """Todos los operadores activos, incluidos los que ademas son despachadores."""
+    return _activos_con_alguno(RolUsuario.OPERADOR)
+
+
+def tecnicos_wifi_activos() -> list[Usuario]:
+    """Los tecnicos de wifi, que son los unicos que reciben sitios wifi."""
+    return _activos_con_alguno(RolUsuario.TECNICO_WIFI)
+
+
+def destinatarios_interrupcion() -> list[Usuario]:
+    """Todos los que pueden recibir alguna interrupcion."""
+    return _activos_con_alguno(RolUsuario.OPERADOR, RolUsuario.TECNICO_WIFI)
+
+
+def destinatarios_para(ticket) -> list[Usuario]:
+    """Candidatos a recibir ESTE ticket, segun su tipo y su categoria."""
+    from app.models.interrupcion import Interrupcion
+
+    if isinstance(ticket, Interrupcion) and ticket.es_sitio_wifi:
+        return destinatarios_interrupcion()
+    return operadores_activos()
 
 
 def _usuario_del_form(campo: str = "asignado_a_id") -> Usuario | None:

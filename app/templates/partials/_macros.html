@@ -43,6 +43,9 @@
 
     {% if t.tipo.name == "INTERRUPCION" %}
       <div class="pie">
+        {% if t.es_sitio_wifi %}
+          <span class="insignia {{ t.categoria | color_categoria }}">{{ t.categoria.etiqueta }}</span>
+        {% endif %}
         {% if t.dependencia %}
           <span class="insignia gris">{{ t.dependencia.etiqueta }}</span>
         {% else %}

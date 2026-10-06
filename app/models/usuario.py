@@ -103,6 +103,17 @@ class Usuario(UserMixin, db.Model):
         return ", ".join(r.etiqueta for r in self.roles_ordenados)
 
     @property
+    def etiqueta_asignacion(self) -> str:
+        """Nombre para los selectores de asignacion.
+
+        Avisa cuando el destinatario es tecnico de wifi y no operador, porque
+        a el solo se le pueden entregar interrupciones de sitio wifi.
+        """
+        if self.tiene_rol(RolUsuario.TECNICO_WIFI) and not self.tiene_rol(RolUsuario.OPERADOR):
+            return f"{self.nombre_completo} (tecnico de wifi)"
+        return self.nombre_completo
+
+    @property
     def iniciales(self) -> str:
         partes = [p for p in self.nombre_completo.split() if p]
         return "".join(p[0] for p in partes[:2]).upper() or self.usuario[:2].upper()

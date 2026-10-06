@@ -30,7 +30,14 @@
               {% else %}<span class="tenue">-</span>{% endif %}
             </td>
             <td data-etiqueta="Prioridad"><span class="insignia {{ f.prioridad | color_prioridad }}">{{ f.prioridad_etiqueta }}</span></td>
-            <td class="pequeno" data-etiqueta="Dependencia">{{ f.dependencia_etiqueta if f.tipo == "INTERRUPCION" else "-" }}</td>
+            <td class="pequeno" data-etiqueta="Dependencia">
+              {% if f.tipo == "INTERRUPCION" %}
+                {{ f.dependencia_etiqueta }}
+                {% if f.categoria == "SITIO_WIFI" %}
+                  <br><span class="insignia {{ f.categoria | color_categoria }}">{{ f.categoria_etiqueta }}</span>
+                {% endif %}
+              {% else %}-{% endif %}
+            </td>
             <td data-etiqueta="Estado">
               <span class="insignia {{ f.estado | color_estado }}">{{ f.estado_etiqueta }}</span>
               {% if f.estado_fibra_etiqueta and f.estado == "DERIVADA_FIBRA" %}

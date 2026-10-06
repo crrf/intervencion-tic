@@ -39,20 +39,96 @@ def test_flujo_completo_de_una_orden(nueva_orden, despachador, operador):
     db.session.commit()
     assert orden.estado is EstadoOrden.EN_PROCESO
 
-    ejecutar_transicion(orden, operador, "estado:CERRADA", comentario="Trabajo terminado")
+    # El operador da el OK: la orden todavia no esta cerrada.
+    ejecutar_transicion(orden, operador, "estado:OK_OPERADOR", comentario="Trabajo terminado")
+    db.session.commit()
+    assert orden.estado is EstadoOrden.OK_OPERADOR
+    assert orden.cerrado_en is None
+    assert orden.comentarios[-1].texto == "Trabajo terminado"
+
+    # Y el despachador la marca cerrada en SIPREC.
+    ejecutar_transicion(orden, despachador, "estado:CERRADA", comentario="Cerrada en SIPREC")
     db.session.commit()
     assert orden.estado is EstadoOrden.CERRADA
     assert orden.cerrado_en is not None
-    assert orden.comentarios[-1].texto == "Trabajo terminado"
 
 
-def test_cerrar_sin_comentario_falla(nueva_orden, despachador, operador):
+def test_el_ok_y_el_cierre_exigen_comentario(nueva_orden, despachador, operador):
     orden = nueva_orden(despachador, asignado_a=operador)
     ejecutar_transicion(orden, operador, "estado:EN_PROCESO")
     db.session.commit()
 
     with pytest.raises(TransicionInvalida, match="comentario"):
-        ejecutar_transicion(orden, operador, "estado:CERRADA")
+        ejecutar_transicion(orden, operador, "estado:OK_OPERADOR")
+
+    ejecutar_transicion(orden, operador, "estado:OK_OPERADOR", comentario="Enlace probado")
+    db.session.commit()
+
+    with pytest.raises(TransicionInvalida, match="comentario"):
+        ejecutar_transicion(orden, despachador, "estado:CERRADA")
+
+
+def test_el_operador_no_cierra_la_orden(nueva_orden, despachador, operador):
+    """El cierre en SIPREC es del despachador: el operador solo da el OK."""
+    orden = nueva_orden(despachador, asignado_a=operador)
+    ejecutar_transicion(orden, operador, "estado:EN_PROCESO")
+    db.session.commit()
+
+    assert claves(orden, operador) == {"estado:OK_OPERADOR", "estado:ABIERTA_CON_MOTIVO"}
+    with pytest.raises(TransicionInvalida):
+        ejecutar_transicion(orden, operador, "estado:CERRADA", comentario="ya esta")
+
+
+def test_el_ok_pasa_al_despachador_que_cierra_en_siprec(
+    nueva_orden, despachador, operador
+):
+    orden = nueva_orden(despachador, asignado_a=operador)
+    ejecutar_transicion(orden, operador, "estado:EN_PROCESO")
+    ejecutar_transicion(orden, operador, "estado:OK_OPERADOR", comentario="Enlace probado")
+    db.session.commit()
+
+    # Mientras espera el cierre sigue abierta, el operador ya no la mueve y el
+    # despachador tiene las dos salidas: cerrarla o devolverla.
+    assert orden.abierto
+    assert claves(orden, operador) == set()
+    assert claves(orden, despachador) == {"estado:CERRADA", "estado:EN_PROCESO"}
+
+    ejecutar_transicion(orden, despachador, "estado:CERRADA", comentario="Cerrada en SIPREC")
+    db.session.commit()
+    assert orden.estado is EstadoOrden.CERRADA
+    assert orden.cerrado_en is not None
+
+
+def test_el_despachador_devuelve_el_ok_al_operador(nueva_orden, despachador, operador):
+    orden = nueva_orden(despachador, asignado_a=operador)
+    ejecutar_transicion(orden, operador, "estado:EN_PROCESO")
+    ejecutar_transicion(orden, operador, "estado:OK_OPERADOR", comentario="Listo")
+    db.session.commit()
+
+    ejecutar_transicion(
+        orden, despachador, "estado:EN_PROCESO", comentario="Falta la foto del tendido"
+    )
+    db.session.commit()
+    assert orden.estado is EstadoOrden.EN_PROCESO
+    assert orden.cerrado_en is None
+    assert "estado:OK_OPERADOR" in claves(orden, operador)
+
+
+def test_desde_abierta_con_motivo_tambien_se_da_el_ok(nueva_orden, despachador, operador):
+    orden = nueva_orden(despachador, asignado_a=operador)
+    ejecutar_transicion(orden, operador, "estado:EN_PROCESO")
+    ejecutar_transicion(
+        orden, operador, "estado:ABIERTA_CON_MOTIVO",
+        comentario="No hubo acceso", motivo="Cliente ausente",
+    )
+    db.session.commit()
+
+    assert claves(orden, operador) == {"estado:EN_PROCESO", "estado:OK_OPERADOR"}
+    ejecutar_transicion(
+        orden, operador, "estado:OK_OPERADOR", comentario="Atendido al dia siguiente"
+    )
+    db.session.commit()
+    assert orden.estado is EstadoOrden.OK_OPERADOR
 
 
 def test_dejar_abierta_exige_motivo(nueva_orden, despachador, operador):
@@ -82,10 +158,12 @@ def test_un_operador_ajeno_no_puede_mover_la_orden(nueva_orden, despachador, ope
 def test_solo_el_admin_reabre(nueva_orden, despachador, operador, admin):
     orden = nueva_orden(despachador, asignado_a=operador)
     ejecutar_transicion(orden, operador, "estado:EN_PROCESO")
-    ejecutar_transicion(orden, operador, "estado:CERRADA", comentario="listo")
+    ejecutar_transicion(orden, operador, "estado:OK_OPERADOR", comentario="listo")
+    ejecutar_transicion(orden, despachador, "estado:CERRADA", comentario="en SIPREC")
     db.session.commit()
 
     assert claves(orden, operador) == set()
+    assert claves(orden, despachador) == set()
     assert "estado:EN_PROCESO" in claves(orden, admin)
 
     ejecutar_transicion(orden, admin, "estado:EN_PROCESO", comentario="Se reabre por revision")
