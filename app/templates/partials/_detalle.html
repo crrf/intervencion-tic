@@ -52,7 +52,13 @@
       <div class="datos">
         <div class="dato">
           <div class="etiqueta">Identificador externo</div>
-          <div class="valor mono">{{ ticket.identificador_externo }}</div>
+          <div class="valor mono">
+            {% if ticket.identificador_externo %}
+              {{ ticket.identificador_externo }}
+            {% else %}
+              <span class="tenue">No aplica</span>
+            {% endif %}
+          </div>
         </div>
         <div class="dato">
           <div class="etiqueta">Cliente</div>

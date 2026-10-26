@@ -9,11 +9,12 @@ from sqlalchemy import Enum as SAEnum
 from app.extensions import db
 from app.models.enums import Prioridad
 
-#: Identificador del sistema externo: dos letras cualesquiera y de 4 a 8
-#: digitos (ED1234, FD12345678, WF987654...). El largo varia segun el sistema
-#: del que venga, asi que no se fija en seis.
-MIN_DIGITOS_IDENTIFICADOR = 4
-MAX_DIGITOS_IDENTIFICADOR = 8
+#: Identificador del sistema externo: dos letras cualesquiera y los digitos
+#: que traiga (ED1, ED1234, FD12345678901...). No se fija la cantidad porque
+#: cambia segun el sistema del que venga; el unico tope es lo que cabe en la
+#: columna, 20 caracteres menos las dos letras.
+MIN_DIGITOS_IDENTIFICADOR = 1
+MAX_DIGITOS_IDENTIFICADOR = 18
 PATRON_IDENTIFICADOR = re.compile(
     rf"^[A-Z]{{2}}\d{{{MIN_DIGITOS_IDENTIFICADOR},{MAX_DIGITOS_IDENTIFICADOR}}}$"
 )
@@ -67,7 +68,9 @@ class TicketMixin:
 
     id = db.Column(db.Integer, primary_key=True)
     folio = db.Column(db.String(24), unique=True, nullable=False, index=True)
-    identificador_externo = db.Column(db.String(20), nullable=False, index=True)
+    # Opcional: las interrupciones de sitio wifi no vienen del sistema externo
+    # y no tienen ninguno. Para ellas el folio es el identificador.
+    identificador_externo = db.Column(db.String(20), index=True)
     nombre_cliente = db.Column(db.String(160), nullable=False)
     # Opcionales pero recomendados: le ahorran al operador una vuelta al sitio.
     telefono_contacto = db.Column(db.String(40))

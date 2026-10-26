@@ -14,10 +14,11 @@
         <label class="obligatorio" for="identificador_externo">Identificador</label>
         <input type="text" id="identificador_externo" name="identificador_externo"
                value="{{ datos.identificador_externo or '' }}"
-               pattern="[A-Za-z]{2}[0-9]{4,8}" maxlength="10"
+               pattern="[A-Za-z]{2}[0-9]+" maxlength="20"
                placeholder="ED123456" style="text-transform:uppercase" required>
         <div class="ayuda">
-          Dos letras y de 4 a 8 digitos, tal como aparece en el sistema externo.
+          Dos letras y los digitos que traiga, tal como aparece en el sistema
+          externo.
         </div>
       </div>
       <div class="campo">

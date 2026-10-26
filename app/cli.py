@@ -361,7 +361,12 @@ def seed() -> None:
         )[0]
         inter = Interrupcion(
             folio=folio,
-            identificador_externo=f"FD{random.randint(100000, 999999)}",
+            # Los sitios wifi no traen identificador del sistema externo.
+            identificador_externo=(
+                None
+                if categoria is CategoriaInterrupcion.SITIO_WIFI
+                else f"FD{random.randint(100000, 999999)}"
+            ),
             nombre_cliente=random.choice(CLIENTES),
             telefono_contacto=random.choice(TELEFONOS),
             direccion=random.choice(DIRECCIONES),

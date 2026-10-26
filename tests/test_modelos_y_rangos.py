@@ -94,13 +94,16 @@ def test_el_peso_de_la_prioridad_ordena():
 # ---------------------------------------------------------------------------
 # Identificador y telefono
 # ---------------------------------------------------------------------------
-def test_los_limites_del_identificador_son_los_declarados():
-    assert MIN_DIGITOS_IDENTIFICADOR == 4
-    assert MAX_DIGITOS_IDENTIFICADOR == 8
-    assert identificador_valido("ED" + "1" * MIN_DIGITOS_IDENTIFICADOR)
-    assert identificador_valido("ED" + "1" * MAX_DIGITOS_IDENTIFICADOR)
-    assert not identificador_valido("ED" + "1" * (MIN_DIGITOS_IDENTIFICADOR - 1))
+def test_el_identificador_no_limita_la_cantidad_de_digitos():
+    """Un solo digito vale, y el unico tope es lo que cabe en la columna."""
+    assert MIN_DIGITOS_IDENTIFICADOR == 1
+    assert MAX_DIGITOS_IDENTIFICADOR == 18
+    for cuantos in range(MIN_DIGITOS_IDENTIFICADOR, MAX_DIGITOS_IDENTIFICADOR + 1):
+        assert identificador_valido("ED" + "1" * cuantos), cuantos
+    assert not identificador_valido("ED")
     assert not identificador_valido("ED" + "1" * (MAX_DIGITOS_IDENTIFICADOR + 1))
+    # Y lo que admite cabe en la columna.
+    assert len("ED" + "1" * MAX_DIGITOS_IDENTIFICADOR) == 20
 
 
 def test_el_identificador_se_normaliza():

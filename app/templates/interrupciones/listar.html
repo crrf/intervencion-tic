@@ -26,7 +26,7 @@
         {% for i in interrupciones %}
           <tr>
             <td class="mono nowrap" data-etiqueta="Folio"><a href="{{ i.url_detalle }}">{{ i.folio }}</a></td>
-            <td class="mono" data-etiqueta="Identificador">{{ i.identificador_externo }}</td>
+            <td class="mono" data-etiqueta="Identificador">{{ i.identificador_externo or "-" }}</td>
             <td data-etiqueta="Cliente">
               {{ i.nombre_cliente }}
               {% if i.direccion %}

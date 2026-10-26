@@ -21,7 +21,7 @@
         {% for f in datos.filas %}
           <tr>
             <td class="mono nowrap" data-etiqueta="Folio"><a href="{{ f.url }}">{{ f.folio }}</a></td>
-            <td class="mono" data-etiqueta="Identificador">{{ f.identificador_externo }}</td>
+            <td class="mono" data-etiqueta="Identificador">{{ f.identificador_externo or "-" }}</td>
             <td class="nowrap" data-etiqueta="Tipo">{{ f.tipo_etiqueta }}</td>
             <td data-etiqueta="Cliente">
               {{ f.nombre_cliente }}

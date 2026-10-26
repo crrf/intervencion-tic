@@ -188,9 +188,16 @@ def test_la_orden_se_puede_crear_sin_fotos(cliente, despachador):
 
 def test_el_identificador_malo_no_crea_nada(cliente, despachador):
     entrar(cliente, despachador)
-    respuesta = crear_orden_por_formulario(cliente, identificador_externo="ED12")
-    assert "entre 4 y 8 digitos" in respuesta.get_data(as_text=True)
+    respuesta = crear_orden_por_formulario(cliente, identificador_externo="EDF-12")
+    assert "dos letras y despues solo digitos" in respuesta.get_data(as_text=True)
     assert db.session.execute(select(OrdenTrabajo)).first() is None
+
+
+def test_el_identificador_corto_ahora_vale(cliente, despachador):
+    """La cantidad de digitos no se restringe: dos letras y lo que traiga."""
+    entrar(cliente, despachador)
+    crear_orden_por_formulario(cliente, identificador_externo="ED1")
+    assert buscar_orden("ED1").estado is EstadoOrden.NUEVA
 
 
 def test_el_camino_de_abierta_con_motivo(cliente, despachador, operador):

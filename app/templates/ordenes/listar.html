@@ -23,7 +23,7 @@
         {% for o in ordenes %}
           <tr>
             <td class="mono nowrap" data-etiqueta="Folio"><a href="{{ o.url_detalle }}">{{ o.folio }}</a></td>
-            <td class="mono" data-etiqueta="Identificador">{{ o.identificador_externo }}</td>
+            <td class="mono" data-etiqueta="Identificador">{{ o.identificador_externo or "-" }}</td>
             <td data-etiqueta="Cliente">
               {{ o.nombre_cliente }}
               {% if o.direccion %}

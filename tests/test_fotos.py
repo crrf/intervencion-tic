@@ -118,14 +118,17 @@ def test_si_falla_la_segunda_cara_no_queda_huerfana_la_primera(app, despachador,
 @pytest.mark.parametrize(
     "identificador",
     [
-        "ED1234",        # el minimo: 4 digitos
-        "ED12345678",    # el maximo: 8 digitos
-        "FD123456",      # el de siempre
-        "WF98765",       # cualquier par de letras, no solo ED o FD
+        "ED1",                  # un solo digito
+        "ED12",
+        "ED1234",
+        "FD123456",             # el de siempre
+        "ED12345678901234",     # y los que traiga
+        "WF98765",              # cualquier par de letras, no solo ED o FD
         "ZZ9999",
     ],
 )
 def test_identificadores_validos(app, despachador, identificador):
+    """Dos letras y los digitos que sean: la cantidad no se restringe."""
     orden = _orden(despachador, identificador_externo=identificador)
     assert orden.identificador_externo == identificador
 
@@ -134,16 +137,16 @@ def test_identificadores_validos(app, despachador, identificador):
     "identificador",
     [
         "12345",         # sin letras
-        "ED123",         # 3 digitos: se queda corto
-        "ED123456789",   # 9 digitos: se pasa
         "E123456",       # una sola letra
         "EDF123456",     # tres letras
         "ED12A456",      # una letra en medio de los digitos
         "ED",            # sin digitos
+        "ED-123",        # separadores no
+        "ED" + "1" * 19,  # no cabe en la columna
     ],
 )
 def test_identificadores_invalidos(app, despachador, identificador):
-    with pytest.raises(DatosInvalidos, match="dos letras y entre 4 y 8 digitos"):
+    with pytest.raises(DatosInvalidos, match="dos letras y despues solo digitos"):
         _orden(despachador, identificador_externo=identificador)
 
 
@@ -152,12 +155,24 @@ def test_identificador_se_normaliza_a_mayusculas(app, despachador):
     assert orden.identificador_externo == "ED987654"
 
 
-def test_el_formulario_acepta_el_largo_variable(cliente, despachador):
-    """El `pattern` y el `maxlength` del HTML tienen que dejar pasar 8 digitos."""
+def test_los_espacios_se_quitan_al_pegarlo(app, despachador):
+    """Se pega tal cual del sistema externo, con espacios y todo."""
+    orden = _orden(despachador, identificador_externo="ED 123 456")
+    assert orden.identificador_externo == "ED123456"
+
+
+def test_la_orden_sigue_exigiendo_identificador(app, despachador):
+    with pytest.raises(DatosInvalidos, match="identificador"):
+        _orden(despachador, identificador_externo="")
+
+
+def test_el_formulario_no_limita_los_digitos(cliente, despachador):
+    """El `pattern` del HTML no debe ser mas estricto que el servidor."""
     cliente.post("/login", data={"usuario": despachador.usuario, "password": CLAVE})
-    html = cliente.get("/ordenes/nueva").get_data(as_text=True)
-    assert 'pattern="[A-Za-z]{2}[0-9]{4,8}"' in html
-    assert 'maxlength="10"' in html  # dos letras mas ocho digitos
+    for ruta in ("/ordenes/nueva", "/interrupciones/nueva"):
+        html = cliente.get(ruta).get_data(as_text=True)
+        assert 'pattern="[A-Za-z]{2}[0-9]+"' in html, ruta
+        assert 'maxlength="20"' in html, ruta
 
 
 # ---------------------------------------------------------------------------

@@ -298,7 +298,7 @@ permiso sobre el ticket y redirige a una **URL prefirmada** de 15 minutos.
 
 Reservados a `admin` y `despachador`:
 
-- **`/buscar`** — por identificador externo (`ED123456`, `FD1234`…), folio, cliente, texto libre en
+- **`/buscar`** — por identificador externo (`ED1`, `ED123456`…), folio, cliente, texto libre en
   descripciones y comentarios, más filtros de tipo, estado, dependencia, prioridad, operador,
   creador, agente de fibra y rango de fechas. Exporta a CSV.
 - **`/reportes/historico`** — qué pasó en un periodo: a quién se asignó cada ticket, en qué estado

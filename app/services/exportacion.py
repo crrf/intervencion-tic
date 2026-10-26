@@ -74,7 +74,7 @@ def filas_tickets(filtros, usuario, tz):
         escritor.writerow(
             [
                 t["folio"],
-                t["identificador_externo"],
+                t["identificador_externo"] or "",
                 t["tipo_etiqueta"],
                 t["nombre_cliente"],
                 t["telefono_contacto"] or "",

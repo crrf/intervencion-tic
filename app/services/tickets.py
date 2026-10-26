@@ -179,13 +179,26 @@ def reemplazar_foto(ticket, usuario, cual: str, archivo) -> str:
 # ---------------------------------------------------------------------------
 # Creacion
 # ---------------------------------------------------------------------------
-def _validar_comunes(identificador: str, cliente: str, titulo: str, telefono: str | None) -> str:
-    identificador = normalizar_identificador(identificador)
-    if not identificador_valido(identificador):
+def _validar_comunes(
+    identificador: str,
+    cliente: str,
+    titulo: str,
+    telefono: str | None,
+    *,
+    exige_identificador: bool = True,
+) -> str | None:
+    """Valida lo comun a los dos tipos y devuelve el identificador limpio.
+
+    `exige_identificador` es False en los sitios wifi, que no vienen del
+    sistema externo. Si aun asi llega uno, se valida igual.
+    """
+    identificador = normalizar_identificador(identificador) or None
+    if identificador is None and not exige_identificador:
+        pass
+    elif not identificador_valido(identificador):
         raise DatosInvalidos(
-            f"El identificador debe tener dos letras y entre "
-            f"{MIN_DIGITOS_IDENTIFICADOR} y {MAX_DIGITOS_IDENTIFICADOR} digitos, "
-            f"por ejemplo ED1234 o ED12345678."
+            "El identificador debe tener dos letras y despues solo digitos "
+            f"(hasta {MAX_DIGITOS_IDENTIFICADOR}), por ejemplo ED1234."
         )
     if not (cliente or "").strip():
         raise DatosInvalidos("El nombre del cliente es obligatorio.")
@@ -314,7 +327,7 @@ def crear_orden(
 def crear_interrupcion(
     usuario,
     *,
-    identificador_externo: str,
+    identificador_externo: str = "",
     nombre_cliente: str,
     titulo: str,
     telefono_contacto: str | None = None,
@@ -330,10 +343,10 @@ def crear_interrupcion(
     La categoria SI se define aqui (enlace de cliente o sitio wifi): el
     despachador la necesita para saber a quien se la entrega. La dependencia
     no: nace como "por diagnosticar" y la fija quien la revisa.
+
+    Las de sitio wifi no exigen identificador externo, porque no vienen de
+    ningun sistema externo.
     """
-    identificador = _validar_comunes(
-        identificador_externo, nombre_cliente, titulo, telefono_contacto
-    )
     if isinstance(prioridad, str):
         prioridad = Prioridad.desde_nombre(prioridad) or Prioridad.MEDIA
     if isinstance(categoria, str):
@@ -341,6 +354,15 @@ def crear_interrupcion(
             CategoriaInterrupcion.desde_nombre(categoria)
             or CategoriaInterrupcion.ENLACE_CLIENTE
         )
+
+    identificador = _validar_comunes(
+        identificador_externo,
+        nombre_cliente,
+        titulo,
+        telefono_contacto,
+        # Un sitio wifi no tiene identificador del sistema externo.
+        exige_identificador=categoria is not CategoriaInterrupcion.SITIO_WIFI,
+    )
 
     folio = siguiente_folio(TipoTicket.INTERRUPCION, ahora().year)
     clave = _subir_si_hay(foto, f"interrupciones/{folio}/foto")
