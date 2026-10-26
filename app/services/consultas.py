@@ -26,6 +26,7 @@ from sqlalchemy.orm import aliased
 from app.extensions import db
 from app.models.comentario import Comentario
 from app.models.enums import (
+    CategoriaInterrupcion,
     Dependencia,
     EstadoFibra,
     EstadoInterrupcion,
@@ -125,10 +126,12 @@ def cte_tickets(usuario=None, aplicar_visibilidad: bool = True):
         OrdenTrabajo.identificador_externo.label("identificador_externo"),
         OrdenTrabajo.nombre_cliente.label("nombre_cliente"),
         OrdenTrabajo.telefono_contacto.label("telefono_contacto"),
+        OrdenTrabajo.direccion.label("direccion"),
         OrdenTrabajo.titulo.label("titulo"),
         OrdenTrabajo.descripcion.label("descripcion"),
         txt(OrdenTrabajo.prioridad).label("prioridad"),
         txt(OrdenTrabajo.estado).label("estado"),
+        cast(null(), String).label("categoria"),
         cast(null(), String).label("dependencia"),
         cast(null(), String).label("estado_fibra"),
         OrdenTrabajo.asignado_a_id.label("asignado_a_id"),
@@ -146,10 +149,12 @@ def cte_tickets(usuario=None, aplicar_visibilidad: bool = True):
         Interrupcion.identificador_externo,
         Interrupcion.nombre_cliente,
         Interrupcion.telefono_contacto,
+        Interrupcion.direccion,
         Interrupcion.titulo,
         Interrupcion.descripcion,
         txt(Interrupcion.prioridad),
         txt(Interrupcion.estado),
+        txt(Interrupcion.categoria),
         txt(Interrupcion.dependencia),
         txt(Interrupcion.estado_fibra),
         Interrupcion.asignado_a_id,
@@ -192,6 +197,7 @@ class Filtros:
     tipo: str = ""
     estado: str = ""
     estado_fibra: str = ""
+    categoria: str = ""
     dependencia: str = ""
     prioridad: str = ""
     asignado_a_id: int | None = None
@@ -216,6 +222,7 @@ class Filtros:
             tipo=(args.get("tipo") or "").strip().upper(),
             estado=(args.get("estado") or "").strip().upper(),
             estado_fibra=(args.get("estado_fibra") or "").strip().upper(),
+            categoria=(args.get("categoria") or "").strip().upper(),
             dependencia=(args.get("dependencia") or "").strip().upper(),
             prioridad=(args.get("prioridad") or "").strip().upper(),
             asignado_a_id=_int("asignado_a_id"),
@@ -246,6 +253,7 @@ class Filtros:
                 self.tipo,
                 self.estado,
                 self.estado_fibra,
+                self.categoria,
                 self.dependencia,
                 self.prioridad,
                 self.asignado_a_id,
@@ -263,6 +271,7 @@ class Filtros:
                 "tipo": self.tipo,
                 "estado": self.estado,
                 "estado_fibra": self.estado_fibra,
+                "categoria": self.categoria,
                 "dependencia": self.dependencia,
                 "prioridad": self.prioridad,
                 "asignado_a_id": self.asignado_a_id,
@@ -289,6 +298,7 @@ def _condiciones(t, f: Filtros) -> list:
                 t.c.folio.ilike(patron),
                 t.c.nombre_cliente.ilike(patron),
                 t.c.telefono_contacto.ilike(patron),
+                t.c.direccion.ilike(patron),
                 t.c.titulo.ilike(patron),
                 t.c.descripcion.ilike(patron),
                 exists(
@@ -316,6 +326,8 @@ def _condiciones(t, f: Filtros) -> list:
         cond.append(t.c.estado == f.estado)
     if f.estado_fibra:
         cond.append(t.c.estado_fibra == f.estado_fibra)
+    if f.categoria:
+        cond.append(t.c.categoria == f.categoria)
     if f.dependencia:
         cond.append(t.c.dependencia == f.dependencia)
     if f.prioridad:
@@ -422,6 +434,7 @@ def enriquecer(fila) -> dict:
     d["tipo_etiqueta"] = TipoTicket.desde_nombre(d["tipo"]).etiqueta
     d["estado_etiqueta"] = etiqueta_estado(d["tipo"], d["estado"])
     d["prioridad_etiqueta"] = _etiqueta(Prioridad, d["prioridad"]) or "-"
+    d["categoria_etiqueta"] = _etiqueta(CategoriaInterrupcion, d["categoria"])
     d["dependencia_etiqueta"] = _etiqueta(Dependencia, d["dependencia"]) or "Por diagnosticar"
     d["estado_fibra_etiqueta"] = _etiqueta(EstadoFibra, d["estado_fibra"])
     d["url"] = (

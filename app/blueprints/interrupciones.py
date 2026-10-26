@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app.blueprints import _acciones
 from app.extensions import db
-from app.models.enums import Prioridad, RolUsuario
+from app.models.enums import CategoriaInterrupcion, Prioridad, RolUsuario
 from app.models.interrupcion import Interrupcion
 from app.security.decoradores import (
     aplicar_filtro,
@@ -42,38 +42,71 @@ def listar():
     return render_template("interrupciones/listar.html", interrupciones=interrupciones)
 
 
+def _crear_desde_formulario(categoria: CategoriaInterrupcion):
+    """Parte comun de los dos formularios de creacion.
+
+    Devuelve la respuesta de exito, o None si hubo un error (que ya quedo en
+    un aviso) para que la vista vuelva a dibujar su propio formulario.
+    """
+    asignado = None
+    valor = (request.form.get("asignado_a_id") or "").strip()
+    if valor.isdigit():
+        from app.models.usuario import Usuario
+
+        asignado = db.session.get(Usuario, int(valor))
+    try:
+        inter = servicio.crear_interrupcion(
+            current_user,
+            identificador_externo=request.form.get("identificador_externo", ""),
+            nombre_cliente=request.form.get("nombre_cliente", ""),
+            telefono_contacto=request.form.get("telefono_contacto"),
+            titulo=request.form.get("titulo", ""),
+            descripcion=request.form.get("descripcion", ""),
+            prioridad=request.form.get("prioridad", Prioridad.MEDIA.name),
+            categoria=categoria,
+            direccion=request.form.get("direccion"),
+            foto=request.files.get("foto"),
+            asignado_a=asignado,
+        )
+    except servicio.DatosInvalidos as exc:
+        db.session.rollback()
+        flash(str(exc), "error")
+        return None
+
+    flash(f"Interrupcion {inter.folio} creada.", "ok")
+    return redirect(inter.url_detalle)
+
+
 @bp.route("/nueva", methods=["GET", "POST"])
 @rol_requerido(RolUsuario.ADMIN, RolUsuario.DESPACHADOR)
 def nueva():
-    operadores = _acciones.operadores_activos()
-
+    """Interrupcion del enlace de un cliente: la atiende un operador."""
     if request.method == "POST":
-        asignado = None
-        valor = (request.form.get("asignado_a_id") or "").strip()
-        if valor.isdigit():
-            from app.models.usuario import Usuario
-
-            asignado = db.session.get(Usuario, int(valor))
-        try:
-            inter = servicio.crear_interrupcion(
-                current_user,
-                identificador_externo=request.form.get("identificador_externo", ""),
-                nombre_cliente=request.form.get("nombre_cliente", ""),
-                telefono_contacto=request.form.get("telefono_contacto"),
-                titulo=request.form.get("titulo", ""),
-                descripcion=request.form.get("descripcion", ""),
-                prioridad=request.form.get("prioridad", Prioridad.MEDIA.name),
-                foto=request.files.get("foto"),
-                asignado_a=asignado,
-            )
-            flash(f"Interrupcion {inter.folio} creada.", "ok")
-            return redirect(inter.url_detalle)
-        except servicio.DatosInvalidos as exc:
-            db.session.rollback()
-            flash(str(exc), "error")
+        respuesta = _crear_desde_formulario(CategoriaInterrupcion.ENLACE_CLIENTE)
+        if respuesta is not None:
+            return respuesta
 
     return render_template(
-        "interrupciones/nueva.html", operadores=operadores, datos=request.form
+        "interrupciones/nueva.html",
+        operadores=_acciones.operadores_activos(),
+        datos=request.form,
+    )
+
+
+@bp.route("/nueva-wifi", methods=["GET", "POST"])
+@rol_requerido(RolUsuario.ADMIN, RolUsuario.DESPACHADOR)
+def nueva_wifi():
+    """Interrupcion de un sitio wifi: la atiende un tecnico de wifi."""
+    if request.method == "POST":
+        respuesta = _crear_desde_formulario(CategoriaInterrupcion.SITIO_WIFI)
+        if respuesta is not None:
+            return respuesta
+
+    return render_template(
+        "interrupciones/nueva_wifi.html",
+        tecnicos=_acciones.tecnicos_wifi_activos(),
+        operadores=_acciones.operadores_activos(),
+        datos=request.form,
     )
 
 
@@ -86,7 +119,7 @@ def detalle(interrupcion_id: int):
         ticket=inter,
         transiciones=transiciones_permitidas(inter, current_user),
         eventos=servicio.linea_de_tiempo(inter),
-        operadores=_acciones.operadores_activos(),
+        operadores=_acciones.destinatarios_para(inter),
         es_interrupcion=True,
         tipo_adjunto="interrupcion",
         id_kwarg="interrupcion_id",
@@ -94,7 +127,7 @@ def detalle(interrupcion_id: int):
         endpoint_mover="interrupciones.mover",
         endpoint_comentar="interrupciones.comentar",
         endpoint_reasignar="interrupciones.reasignar",
-        endpoint_telefono="interrupciones.cambiar_telefono",
+        endpoint_contacto="interrupciones.cambiar_contacto",
     )
 
 
@@ -136,7 +169,21 @@ def clasificar(interrupcion_id: int):
     return redirect(inter.url_detalle)
 
 
-@bp.post("/<int:interrupcion_id>/telefono")
+@bp.post("/<int:interrupcion_id>/categoria")
 @login_required
-def cambiar_telefono(interrupcion_id: int):
-    return _acciones.cambiar_telefono(_obtener(interrupcion_id))
+def cambiar_categoria(interrupcion_id: int):
+    """El despachador corrige si es enlace de cliente o sitio wifi."""
+    inter = _obtener(interrupcion_id)
+    try:
+        servicio.actualizar_categoria(inter, current_user, request.form.get("categoria"))
+        flash("Categoria actualizada.", "ok")
+    except (servicio.DatosInvalidos, TransicionInvalida) as exc:
+        db.session.rollback()
+        flash(str(exc), "error")
+    return redirect(inter.url_detalle)
+
+
+@bp.post("/<int:interrupcion_id>/contacto")
+@login_required
+def cambiar_contacto(interrupcion_id: int):
+    return _acciones.cambiar_contacto(_obtener(interrupcion_id))

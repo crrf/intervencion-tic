@@ -43,6 +43,34 @@ def avisar_asignacion(ticket, destinatario, actor) -> None:
     )
 
 
+def avisar_ok_del_operador(ticket, actor) -> None:
+    """El operador dio su OK: avisa a los despachadores, que son los que
+    cierran la orden en SIPREC."""
+    for despachador in _usuarios_con_rol(RolUsuario.DESPACHADOR):
+        if despachador.id == actor.id:
+            continue
+        crear(
+            despachador.id,
+            f"{ticket.folio} con OK del operador",
+            f"{actor.nombre_completo} dio el OK del trabajo de "
+            f"{ticket.nombre_cliente}. Falta cerrarla en SIPREC.",
+            ticket.url_detalle,
+        )
+
+
+def avisar_ok_devuelto(ticket, actor) -> None:
+    """El despachador devolvio la orden al operador asignado."""
+    if not ticket.asignado_a_id or ticket.asignado_a_id == actor.id:
+        return
+    crear(
+        ticket.asignado_a_id,
+        f"{ticket.folio} volvio a tu bandeja",
+        f"{actor.nombre_completo} devolvio la orden de {ticket.nombre_cliente}: "
+        f"revisa el comentario antes de dar el OK de nuevo.",
+        ticket.url_detalle,
+    )
+
+
 def avisar_derivacion_a_fibra(ticket, actor) -> None:
     for agente in _usuarios_con_rol(RolUsuario.AGENTE_FIBRA):
         if agente.id == actor.id:

@@ -29,7 +29,9 @@
       <span class="folio mono">{{ t.folio }}</span>
       <span class="insignia {{ t.prioridad | color_prioridad }}">{{ t.prioridad.etiqueta }}</span>
     </div>
-    <div class="identificador mono">{{ t.identificador_externo }}</div>
+    {% if t.identificador_externo %}
+      <div class="identificador mono">{{ t.identificador_externo }}</div>
+    {% endif %}
 
     <div class="titulo"><a href="{{ t.url_detalle }}">{{ t.titulo }}</a></div>
     <div class="cliente">{{ t.nombre_cliente }}</div>
@@ -40,9 +42,17 @@
         </a>
       </div>
     {% endif %}
+    {% if t.direccion %}
+      <div class="cliente direccion" title="{{ t.direccion }}">
+        &#128205; {{ t.direccion | truncate(60) }}
+      </div>
+    {% endif %}
 
     {% if t.tipo.name == "INTERRUPCION" %}
       <div class="pie">
+        {% if t.es_sitio_wifi %}
+          <span class="insignia {{ t.categoria | color_categoria }}">{{ t.categoria.etiqueta }}</span>
+        {% endif %}
         {% if t.dependencia %}
           <span class="insignia gris">{{ t.dependencia.etiqueta }}</span>
         {% else %}

@@ -57,6 +57,7 @@ def _consulta(q: str, prioridad: str, orden: str):
                 Interrupcion.identificador_externo.ilike(patron),
                 Interrupcion.nombre_cliente.ilike(patron),
                 Interrupcion.telefono_contacto.ilike(patron),
+                Interrupcion.direccion.ilike(patron),
                 Interrupcion.titulo.ilike(patron),
                 Interrupcion.descripcion.ilike(patron),
             )

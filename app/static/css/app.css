@@ -10,20 +10,31 @@
   --superficie-2: #f8fafc;
   --borde: #e2e8f0;
   --borde-fuerte: #cbd5e1;
+  /* Borde de los controles de formulario y botones: WCAG 1.4.11 pide 3:1
+     para el contorno de un componente. El --borde-fuerte se queda para
+     separadores decorativos, que estan exentos. */
+  --borde-campo: #7791b0;
   --texto: #0f172a;
-  --texto-suave: #64748b;
-  --texto-tenue: #94a3b8;
+  /* Los dos grises de apoyo pasan AA (4.5:1) sobre fondo, superficie y
+     superficie-2, y mantienen entre si 1.4:1 para que la jerarquia siga
+     leyendose. Medido, no elegido a ojo. */
+  --texto-suave: #4b5869;
+  --texto-tenue: #5d708c;
 
   --marca: #0f4c81;
   --marca-clara: #1d6fb8;
   --marca-fondo: #e8f1f9;
 
-  --gris: #64748b;      --gris-fondo: #f1f5f9;
-  --azul: #1d6fb8;      --azul-fondo: #e3eefa;
-  --ambar: #b45309;     --ambar-fondo: #fdf0dc;
+  /* Cada par texto/fondo de insignia cumple AA: la insignia es texto de
+     0.72rem en negrita, asi que el umbral es 4.5:1, no 3:1. */
+  --gris: #5e6d82;      --gris-fondo: #f1f5f9;
+  --azul: #1b68ad;      --azul-fondo: #e3eefa;
+  --ambar: #aa4f09;     --ambar-fondo: #fdf0dc;
   --violeta: #6d28d9;   --violeta-fondo: #efe8fd;
   --rojo: #b91c1c;      --rojo-fondo: #fdeaea;
-  --verde: #15803d;     --verde-fondo: #e6f5ec;
+  --verde: #14793a;     --verde-fondo: #e6f5ec;
+  --cian: #0e7490;      --cian-fondo: #ddf2f7;
+  --fucsia: #a21caf;    --fucsia-fondo: #fae8ff;
 
   --radio: 10px;
   --radio-sm: 6px;
@@ -39,18 +50,21 @@
     --superficie-2: #182334;
     --borde: #263449;
     --borde-fuerte: #35496a;
+    --borde-campo: #506ea0;
     --texto: #e8eefc;
     --texto-suave: #9fb0cc;
-    --texto-tenue: #7488a8;
+    --texto-tenue: #798cab;
     --marca: #4a9de0;
     --marca-clara: #6bb4ee;
     --marca-fondo: #16283c;
-    --gris-fondo: #1e293b;
+    --gris-fondo: #1e293b;   --gris: #8896a9;
     --azul-fondo: #14293f;   --azul: #7ab6ee;
     --ambar-fondo: #34260f;  --ambar: #f0b357;
     --violeta-fondo: #241a3d; --violeta: #b492f5;
     --rojo-fondo: #3a1717;   --rojo: #f38b8b;
     --verde-fondo: #10281a;  --verde: #6fd694;
+    --cian-fondo: #0c2a31;   --cian: #5cc8dd;
+    --fucsia-fondo: #2e1036; --fucsia: #e9a2f7;
     --sombra: 0 1px 2px rgba(0, 0, 0, .4);
   }
 }
@@ -81,22 +95,30 @@ h3 { font-size: .95rem; }
   align-items: center;
   gap: 1.25rem;
   padding: 0 1.25rem;
-  height: 56px;
+  /* Minimo y no fijo: con alto fijo, cualquier cosa que no quepa se sale
+     por encima del contenido en vez de empujar la barra. */
+  min-height: 56px;
+  flex-wrap: nowrap;
   position: sticky;
   top: 0;
   z-index: 40;
   box-shadow: var(--sombra);
 }
-.barra .marca { font-weight: 700; font-size: 1rem; letter-spacing: .2px; white-space: nowrap; }
+.barra .marca {
+  font-weight: 700; font-size: 1rem; letter-spacing: .2px; white-space: nowrap;
+  flex: 0 0 auto;
+}
 .barra .marca span { opacity: .75; font-weight: 400; font-size: .78rem; display: block; }
-.barra nav { display: flex; gap: .25rem; flex: 1; flex-wrap: wrap; }
+/* Sin envolver: los enlaces caben en una linea o la barra colapsa en
+   hamburguesa, nunca a medias. */
+.barra nav { display: flex; gap: .25rem; flex: 1 1 auto; flex-wrap: nowrap; min-width: 0; }
 .barra nav a {
   color: #fff; opacity: .85; padding: .4rem .7rem;
   border-radius: var(--radio-sm); font-weight: 500;
 }
 .barra nav a:hover { opacity: 1; background: rgba(255, 255, 255, .12); text-decoration: none; }
 .barra nav a.activo { opacity: 1; background: rgba(255, 255, 255, .2); }
-.barra .derecha { display: flex; align-items: center; gap: .75rem; }
+.barra .derecha { display: flex; align-items: center; gap: .75rem; flex: 0 0 auto; }
 .barra .usuario { text-align: right; line-height: 1.2; }
 .barra .usuario strong { display: block; font-size: .85rem; }
 .barra .usuario small { opacity: .75; font-size: .72rem; }
@@ -123,7 +145,7 @@ h3 { font-size: .95rem; }
 /* ---------- Botones ------------------------------------------------------ */
 .btn {
   display: inline-flex; align-items: center; gap: .4rem;
-  border: 1px solid var(--borde-fuerte);
+  border: 1px solid var(--borde-campo);
   background: var(--superficie);
   color: var(--texto);
   padding: .45rem .85rem;
@@ -146,7 +168,7 @@ input[type=text], input[type=password], input[type=date], input[type=number],
 input[type=email], input[type=file], select, textarea {
   width: 100%;
   padding: .5rem .6rem;
-  border: 1px solid var(--borde-fuerte);
+  border: 1px solid var(--borde-campo);
   border-radius: var(--radio-sm);
   background: var(--superficie);
   color: var(--texto);
@@ -158,6 +180,10 @@ input:focus, select:focus, textarea:focus {
 textarea { min-height: 84px; resize: vertical; }
 .campo { margin-bottom: .85rem; }
 .campo .ayuda { font-size: .76rem; color: var(--texto-tenue); margin-top: .2rem; }
+.ayuda { font-size: .76rem; color: var(--texto-tenue); }
+/* Un campo que ocupa la fila entera de la rejilla: la direccion no cabe en
+   media columna. */
+.rejilla .campo-ancho { grid-column: 1 / -1; }
 .rejilla { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .rejilla-2 { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
 .obligatorio::after { content: " *"; color: var(--rojo); }
@@ -183,6 +209,8 @@ textarea { min-height: 84px; resize: vertical; }
 .insignia.violeta { background: var(--violeta-fondo); color: var(--violeta); }
 .insignia.rojo    { background: var(--rojo-fondo);    color: var(--rojo); }
 .insignia.verde   { background: var(--verde-fondo);   color: var(--verde); }
+.insignia.cian    { background: var(--cian-fondo);    color: var(--cian); }
+.insignia.fucsia  { background: var(--fucsia-fondo);  color: var(--fucsia); }
 
 /* ---------- Avisos ------------------------------------------------------- */
 .avisos { position: fixed; top: 68px; right: 1rem; z-index: 60; width: min(380px, 92vw); }
@@ -266,6 +294,8 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .tarjeta .identificador { color: var(--texto-suave); font-size: .76rem; }
 .tarjeta .titulo { margin: .3rem 0; font-weight: 600; font-size: .86rem; }
 .tarjeta .cliente { color: var(--texto-suave); font-size: .78rem; }
+/* La direccion puede ser larga: una linea, sin romper la tarjeta. */
+.tarjeta .direccion { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tarjeta .pie {
   display: flex; align-items: center; justify-content: space-between;
   gap: .4rem; margin-top: .5rem; flex-wrap: wrap;
@@ -296,7 +326,7 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .filtros .campo.ancho { min-width: 260px; flex: 1; }
 .chips { display: flex; gap: .35rem; flex-wrap: wrap; }
 .chip {
-  padding: .3rem .7rem; border-radius: 999px; border: 1px solid var(--borde-fuerte);
+  padding: .3rem .7rem; border-radius: 999px; border: 1px solid var(--borde-campo);
   background: var(--superficie); font-size: .8rem; font-weight: 500; color: var(--texto-suave);
 }
 .chip.activo { background: var(--marca); border-color: var(--marca); color: #fff; }
@@ -363,6 +393,24 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   background: #dc2626; color: #fff; border-radius: 999px;
   font-size: .64rem; font-weight: 700; padding: .05rem .3rem; min-width: 16px;
 }
+/* ---------- Menu de "+ Nuevo" -------------------------------------------- */
+.menu-nuevo { position: relative; flex: 0 0 auto; }
+.menu-nuevo > .btn { white-space: nowrap; }
+.desplegable {
+  position: absolute; top: calc(100% + .4rem); right: 0; z-index: 50;
+  min-width: 240px; padding: .3rem;
+  background: var(--superficie); color: var(--texto);
+  border: 1px solid var(--borde); border-radius: var(--radio);
+  box-shadow: var(--sombra-alta);
+}
+.desplegable a {
+  display: block; padding: .6rem .7rem; border-radius: var(--radio-sm);
+  color: var(--texto); font-size: .88rem; white-space: nowrap;
+}
+.desplegable a:hover, .desplegable a:focus-visible {
+  background: var(--marca-fondo); text-decoration: none;
+}
+
 .panel-notif {
   position: absolute; right: 1rem; top: 58px; width: min(400px, 92vw);
   background: var(--superficie); border: 1px solid var(--borde);
@@ -392,6 +440,7 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .metrica.acento-verde .valor { color: var(--verde); }
 .metrica.acento-ambar .valor { color: var(--ambar); }
 .metrica.acento-violeta .valor { color: var(--violeta); }
+.metrica.acento-cian .valor { color: var(--cian); }
 
 .graficos { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
 .grafico { background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio); padding: 1rem; box-shadow: var(--sombra); }
@@ -437,6 +486,56 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .solo-movil { display: none; }
 .hamburguesa { display: none; }
 
+/* ---------- Barra: colapso propio, antes que el resto del diseno --------- */
+/* El contenido de la barra (hasta seis enlaces, el boton de crear, la
+   campana y los datos del usuario) deja de caber mucho antes de los 860 px
+   donde empieza el diseno de telefono. Estos dos cortes son solo de la
+   barra: el resto de la pagina no se toca aqui. */
+@media (max-width: 1249px) {
+  .barra { gap: .75rem; padding: 0 .9rem; }
+  .barra .marca span { display: none; }      /* el subtitulo es lo primero que sobra */
+  .barra .usuario { display: none; }         /* el nombre esta en Mi cuenta */
+  .barra nav a { padding: .4rem .55rem; }
+}
+
+@media (max-width: 1079px) {
+  /* Todo tras el menu: los enlaces ya no caben en una linea. */
+  .barra .no-movil { display: none !important; }
+  .barra .solo-movil { display: block; }
+  .barra .etiqueta-nuevo { display: none; }  /* el boton queda como "+" */
+  .barra .derecha { margin-left: auto; gap: .35rem; }
+
+  .hamburguesa {
+    display: flex; flex-direction: column; justify-content: center; gap: 4px;
+    width: 42px; height: 42px; padding: 0 9px; flex: none;
+    background: none; border: none; cursor: pointer;
+  }
+  .hamburguesa span {
+    display: block; height: 2px; width: 100%; background: #fff; border-radius: 2px;
+  }
+
+  .barra nav {
+    display: none;
+    position: fixed; inset: 56px 0 0 0;
+    flex-direction: column; gap: .15rem; flex-wrap: nowrap;
+    background: var(--marca);
+    padding: .6rem; overflow-y: auto; z-index: 45;
+  }
+  .barra nav.desplegado { display: flex; }
+  .barra nav a { padding: .9rem 1rem; font-size: 1rem; opacity: .95; }
+  .barra nav a.activo { background: rgba(255, 255, 255, .22); }
+
+  .menu-crear { margin-bottom: .4rem; padding-bottom: .5rem;
+                border-bottom: 1px solid rgba(255, 255, 255, .25); }
+  .menu-pie { margin-top: .5rem; padding-top: .5rem;
+              border-top: 1px solid rgba(255, 255, 255, .25); }
+  .menu-crear a, .menu-pie a {
+    display: block; color: #fff; opacity: .95;
+    padding: .9rem 1rem; border-radius: var(--radio-sm); font-weight: 500;
+  }
+  .menu-crear a { background: rgba(255, 255, 255, .16); margin-bottom: .3rem; }
+}
+
 /* ---------- Objetivos tactiles ------------------------------------------ */
 /* Con el dedo hace falta altura, no la de un puntero de raton. */
 @media (pointer: coarse) {
@@ -458,42 +557,10 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .no-movil { display: none !important; }
   .solo-movil { display: block; }
 
-  /* ---------- Barra: marca, campana y todo lo demas tras el menu -------- */
-  .barra { height: 52px; padding: 0 .5rem; gap: .5rem; flex-wrap: nowrap; }
+  /* La barra ya colapso en 1079; aqui solo se aprieta para el telefono. */
+  .barra { min-height: 52px; padding: 0 .5rem; gap: .5rem; }
   .barra .marca { font-size: .92rem; color: #fff; }
-  .barra .marca span { display: none; }
-  .barra .derecha { margin-left: auto; gap: .25rem; }
-
-  .hamburguesa {
-    display: flex; flex-direction: column; justify-content: center; gap: 4px;
-    width: 42px; height: 42px; padding: 0 9px; flex: none;
-    background: none; border: none; cursor: pointer;
-  }
-  .hamburguesa span {
-    display: block; height: 2px; width: 100%; background: #fff; border-radius: 2px;
-  }
-
-  /* El menu ocupa la pantalla: enlaces grandes, faciles de acertar. */
-  .barra nav {
-    display: none;
-    position: fixed; inset: 52px 0 0 0;
-    flex-direction: column; gap: .15rem;
-    background: var(--marca);
-    padding: .6rem; overflow-y: auto; z-index: 45;
-  }
-  .barra nav.desplegado { display: flex; }
-  .barra nav a { padding: .9rem 1rem; font-size: 1rem; opacity: .95; }
-  .barra nav a.activo { background: rgba(255, 255, 255, .22); }
-
-  .menu-crear { margin-bottom: .4rem; padding-bottom: .5rem;
-                border-bottom: 1px solid rgba(255, 255, 255, .25); }
-  .menu-pie { margin-top: .5rem; padding-top: .5rem;
-              border-top: 1px solid rgba(255, 255, 255, .25); }
-  .menu-crear a, .menu-pie a {
-    display: block; color: #fff; opacity: .95;
-    padding: .9rem 1rem; border-radius: var(--radio-sm); font-weight: 500;
-  }
-  .menu-crear a { background: rgba(255, 255, 255, .16); margin-bottom: .3rem; }
+  .barra nav { inset: 52px 0 0 0; }
 
   /* ---------- Avisos: abajo, donde llega el pulgar y no tapan nada ----- */
   .avisos { top: auto; bottom: .6rem; left: .6rem; right: .6rem; width: auto; }
@@ -502,6 +569,10 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
     position: fixed; top: 52px; left: 0; right: 0; width: auto;
     border-radius: 0; border-left: none; border-right: none; max-height: 75vh;
   }
+
+  /* El menu de crear, a lo ancho: en el pulgar no se acierta un desplegable
+     de 240 px pegado al borde. */
+  .desplegable { position: fixed; top: 52px; left: .5rem; right: .5rem; min-width: 0; }
 
   .contenido { padding: .7rem; }
   h1 { font-size: 1.2rem; }

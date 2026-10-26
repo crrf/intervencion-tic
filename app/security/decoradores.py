@@ -58,6 +58,12 @@ def puede_ver(ticket, usuario=None) -> bool:
     if usuario.tiene_rol(RolUsuario.OPERADOR) and ticket.asignado_a_id == usuario.id:
         return True
     if (
+        usuario.tiene_rol(RolUsuario.TECNICO_WIFI)
+        and isinstance(ticket, Interrupcion)
+        and ticket.asignado_a_id == usuario.id
+    ):
+        return True
+    if (
         usuario.tiene_rol(RolUsuario.AGENTE_FIBRA)
         and isinstance(ticket, Interrupcion)
         and ticket.estado is EstadoInterrupcion.DERIVADA_FIBRA
@@ -94,7 +100,7 @@ def filtro_ordenes(usuario=None):
         return None  # sin restriccion
     if usuario.tiene_rol(RolUsuario.OPERADOR):
         return OrdenTrabajo.asignado_a_id == usuario.id
-    # El agente de fibra no ve ordenes de trabajo en absoluto.
+    # Ni el agente de fibra ni el tecnico de wifi ven ordenes de trabajo.
     return false()
 
 
@@ -107,7 +113,7 @@ def filtro_interrupciones(usuario=None):
         return None
 
     condiciones = []
-    if usuario.tiene_rol(RolUsuario.OPERADOR):
+    if usuario.tiene_alguno(RolUsuario.OPERADOR, RolUsuario.TECNICO_WIFI):
         condiciones.append(Interrupcion.asignado_a_id == usuario.id)
     if usuario.tiene_rol(RolUsuario.AGENTE_FIBRA):
         condiciones.append(Interrupcion.estado == EstadoInterrupcion.DERIVADA_FIBRA)

@@ -64,6 +64,15 @@
         </select>
       </div>
       <div class="campo">
+        <label for="categoria">Categoria</label>
+        <select id="categoria" name="categoria">
+          <option value="">Todas</option>
+          {% for c in CategoriaInterrupcion %}
+            <option value="{{ c.name }}" {{ "selected" if filtros.categoria == c.name }}>{{ c.etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo">
         <label for="dependencia">Dependencia</label>
         <select id="dependencia" name="dependencia">
           <option value="">Todas</option>

@@ -9,8 +9,15 @@ from sqlalchemy import Enum as SAEnum
 from app.extensions import db
 from app.models.enums import Prioridad
 
-#: Identificador del sistema externo: dos letras y seis digitos (ej. ED123456).
-PATRON_IDENTIFICADOR = re.compile(r"^[A-Z]{2}\d{6}$")
+#: Identificador del sistema externo: dos letras cualesquiera y los digitos
+#: que traiga (ED1, ED1234, FD12345678901...). No se fija la cantidad porque
+#: cambia segun el sistema del que venga; el unico tope es lo que cabe en la
+#: columna, 20 caracteres menos las dos letras.
+MIN_DIGITOS_IDENTIFICADOR = 1
+MAX_DIGITOS_IDENTIFICADOR = 18
+PATRON_IDENTIFICADOR = re.compile(
+    rf"^[A-Z]{{2}}\d{{{MIN_DIGITOS_IDENTIFICADOR},{MAX_DIGITOS_IDENTIFICADOR}}}$"
+)
 
 #: Caracteres admitidos en un telefono: digitos y separadores de uso comun.
 PATRON_TELEFONO = re.compile(r"^[\d+()\-.\s]+$")
@@ -27,6 +34,12 @@ def normalizar_identificador(valor: str | None) -> str:
 
 def identificador_valido(valor: str | None) -> bool:
     return bool(PATRON_IDENTIFICADOR.match(normalizar_identificador(valor)))
+
+
+def normalizar_direccion(valor: str | None) -> str | None:
+    """Colapsa espacios y saltos de linea. Vacia devuelve None: es opcional."""
+    limpio = " ".join((valor or "").split())
+    return limpio or None
 
 
 def normalizar_telefono(valor: str | None) -> str | None:
@@ -55,10 +68,13 @@ class TicketMixin:
 
     id = db.Column(db.Integer, primary_key=True)
     folio = db.Column(db.String(24), unique=True, nullable=False, index=True)
-    identificador_externo = db.Column(db.String(20), nullable=False, index=True)
+    # Opcional: las interrupciones de sitio wifi no vienen del sistema externo
+    # y no tienen ninguno. Para ellas el folio es el identificador.
+    identificador_externo = db.Column(db.String(20), index=True)
     nombre_cliente = db.Column(db.String(160), nullable=False)
-    # Opcional pero recomendado: le ahorra al operador una vuelta al sitio.
+    # Opcionales pero recomendados: le ahorran al operador una vuelta al sitio.
     telefono_contacto = db.Column(db.String(40))
+    direccion = db.Column(db.String(240))
     titulo = db.Column(db.String(200), nullable=False)
     descripcion = db.Column(db.Text, nullable=False, default="")
     prioridad = db.Column(

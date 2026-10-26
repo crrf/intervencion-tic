@@ -32,9 +32,14 @@ def test_se_asigna_a_si_mismo_y_cierra(nueva_orden, mixto):
     db.session.commit()
     assert orden.asignado_a_id == mixto.id
 
-    # Y ahora, como operador asignado, puede trabajarla.
+    # Como operador asignado la trabaja y da el OK...
     ejecutar_transicion(orden, mixto, "estado:EN_PROCESO")
-    ejecutar_transicion(orden, mixto, "estado:CERRADA", comentario="Resuelto en sitio")
+    ejecutar_transicion(orden, mixto, "estado:OK_OPERADOR", comentario="Resuelto en sitio")
+    db.session.commit()
+    assert orden.estado is EstadoOrden.OK_OPERADOR
+
+    # ...y como despachador la marca cerrada en SIPREC.
+    ejecutar_transicion(orden, mixto, "estado:CERRADA", comentario="Cerrada en SIPREC")
     db.session.commit()
     assert orden.estado is EstadoOrden.CERRADA
 

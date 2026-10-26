@@ -2,7 +2,19 @@
 {% block titulo %}Nueva interrupcion{% endblock %}
 
 {% block contenido %}
-<div class="encabezado"><h1>Nueva interrupcion</h1></div>
+<div class="encabezado">
+  <div>
+    <h1 class="mb0">Nueva interrupcion de enlace</h1>
+    <p class="suave mb0">
+      Para la caida del enlace de un cliente. La atiende un operador.
+    </p>
+  </div>
+  <div class="acciones">
+    <a class="btn" href="{{ url_for('interrupciones.nueva_wifi') }}">
+      Es de un sitio wifi
+    </a>
+  </div>
+</div>
 
 <form method="post" enctype="multipart/form-data">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -14,9 +26,12 @@
         <label class="obligatorio" for="identificador_externo">Identificador</label>
         <input type="text" id="identificador_externo" name="identificador_externo"
                value="{{ datos.identificador_externo or '' }}"
-               pattern="[A-Za-z]{2}[0-9]{6}" maxlength="8"
+               pattern="[A-Za-z]{2}[0-9]+" maxlength="20"
                placeholder="FD123456" style="text-transform:uppercase" required>
-        <div class="ayuda">Dos letras y seis digitos, como aparece en el sistema externo.</div>
+        <div class="ayuda">
+          Dos letras y los digitos que traiga, tal como aparece en el sistema
+          externo.
+        </div>
       </div>
       <div class="campo">
         <label class="obligatorio" for="nombre_cliente">Nombre del cliente</label>
@@ -43,6 +58,15 @@
             </option>
           {% endfor %}
         </select>
+      </div>
+      <div class="campo campo-ancho">
+        <label for="direccion">
+          Direccion <span class="insignia azul">Recomendado</span>
+        </label>
+        <input type="text" id="direccion" name="direccion"
+               value="{ datos.direccion or '' }" maxlength="240"
+               placeholder="Av. Principal, edificio, piso, punto de referencia...">
+        <div class="ayuda">Donde esta el servicio caido. Sin ella el operador tiene que llamar para que se lo expliquen.</div>
       </div>
       <div class="campo">
         <label for="asignado_a_id">Asignar a (opcional)</label>

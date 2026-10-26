@@ -14,6 +14,7 @@ from app.extensions import db
 from app.models.comentario import Comentario
 from app.models.contador import siguiente_folio
 from app.models.enums import (
+    CategoriaInterrupcion,
     Dependencia,
     EstadoFibra,
     EstadoInterrupcion,
@@ -59,6 +60,16 @@ TITULOS_INTERRUPCION = [
 TELEFONOS = [
     "0414-1234567", "0412-9876543", "0424-5551234", "0416-3334455",
     "0212-7778899", None, None,  # algunos quedan sin telefono, como en la vida real
+]
+
+DIRECCIONES = [
+    "Av. Bolivar con calle 5, edificio Centro, piso 2, local 2-A",
+    "Calle Sucre, casa 14, frente a la plaza",
+    "Urbanizacion El Parral, vereda 3, casa 27",
+    "Av. Las Delicias, centro comercial Paseo, local 112",
+    "Sector La Romana, calle principal, galpon 8",
+    "Carretera nacional km 12, entrada de Tocuyito",
+    None, None,  # algunos quedan sin direccion, como en la vida real
 ]
 
 MOTIVOS = [
@@ -196,6 +207,7 @@ def seed() -> None:
     operador3 = _usuario("operador3", "Jose Ramirez", [RolUsuario.OPERADOR])
     fibra1 = _usuario("fibra1", "Ana Quintero", [RolUsuario.AGENTE_FIBRA])
     fibra2 = _usuario("fibra2", "Pedro Salazar", [RolUsuario.AGENTE_FIBRA])
+    wifi1 = _usuario("wifi1", "Daniela Fuentes", [RolUsuario.TECNICO_WIFI])
     # Caso clave: un mismo usuario con dos roles.
     mixto = _usuario(
         "mixto1", "Rafael Ochoa", [RolUsuario.DESPACHADOR, RolUsuario.OPERADOR]
@@ -203,6 +215,7 @@ def seed() -> None:
     db.session.flush()
 
     operadores = [operador1, operador2, operador3, mixto]
+    tecnicos_wifi = [wifi1]
     agentes = [fibra1, fibra2]
     despachadores = [despachador, mixto]
 
@@ -264,6 +277,7 @@ def seed() -> None:
             identificador_externo=f"ED{random.randint(100000, 999999)}",
             nombre_cliente=random.choice(CLIENTES),
             telefono_contacto=random.choice(TELEFONOS),
+            direccion=random.choice(DIRECCIONES),
             titulo=random.choice(TITULOS_ORDEN),
             descripcion="Trabajo programado reportado por el centro de gestion.",
             prioridad=random.choice(list(Prioridad)),
@@ -278,8 +292,8 @@ def seed() -> None:
         _hist(orden, creador, "estado", None, EstadoOrden.NUEVA.etiqueta, creado)
 
         camino = random.choices(
-            ["nueva", "asignada", "proceso", "motivo", "cerrada"],
-            weights=[8, 12, 18, 17, 45],
+            ["nueva", "asignada", "proceso", "motivo", "ok", "cerrada"],
+            weights=[8, 12, 18, 17, 12, 33],
         )[0]
         if camino == "nueva":
             total_ordenes += 1
@@ -313,12 +327,27 @@ def seed() -> None:
             _coment(orden, operador, orden.motivo_apertura, t_fin)
             _hist(orden, operador, "estado", EstadoOrden.EN_PROCESO.etiqueta,
                   EstadoOrden.ABIERTA_CON_MOTIVO.etiqueta, t_fin)
-        else:
-            orden.estado = EstadoOrden.CERRADA
-            orden.cerrado_en = t_fin
-            _coment(orden, operador, random.choice(COMENTARIOS_CIERRE), t_fin)
-            _hist(orden, operador, "estado", EstadoOrden.EN_PROCESO.etiqueta,
-                  EstadoOrden.CERRADA.etiqueta, t_fin)
+            total_ordenes += 1
+            continue
+
+        # El operador solo da su OK; el cierre en SIPREC lo hace despues el
+        # despachador.
+        orden.estado = EstadoOrden.OK_OPERADOR
+        _coment(orden, operador, random.choice(COMENTARIOS_CIERRE), t_fin)
+        _hist(orden, operador, "estado", EstadoOrden.EN_PROCESO.etiqueta,
+              EstadoOrden.OK_OPERADOR.etiqueta, t_fin)
+        if camino == "ok":
+            total_ordenes += 1
+            continue
+
+        t_cierre = t_fin + timedelta(hours=random.randint(1, 20))
+        if t_cierre > ahora:
+            t_cierre = ahora - timedelta(minutes=10)
+        orden.estado = EstadoOrden.CERRADA
+        orden.cerrado_en = t_cierre
+        _coment(orden, creador, "Cierre registrado en SIPREC.", t_cierre)
+        _hist(orden, creador, "estado", EstadoOrden.OK_OPERADOR.etiqueta,
+              EstadoOrden.CERRADA.etiqueta, t_cierre)
         total_ordenes += 1
 
     # ---------------- Interrupciones ---------------------------------------
@@ -326,15 +355,26 @@ def seed() -> None:
         creado = ahora - timedelta(days=random.randint(0, 59), hours=random.randint(0, 20))
         folio = siguiente_folio(TipoTicket.INTERRUPCION, creado.year)
         creador = random.choice(despachadores)
+        categoria = random.choices(
+            [CategoriaInterrupcion.ENLACE_CLIENTE, CategoriaInterrupcion.SITIO_WIFI],
+            weights=[75, 25],
+        )[0]
         inter = Interrupcion(
             folio=folio,
-            identificador_externo=f"FD{random.randint(100000, 999999)}",
+            # Los sitios wifi no traen identificador del sistema externo.
+            identificador_externo=(
+                None
+                if categoria is CategoriaInterrupcion.SITIO_WIFI
+                else f"FD{random.randint(100000, 999999)}"
+            ),
             nombre_cliente=random.choice(CLIENTES),
             telefono_contacto=random.choice(TELEFONOS),
+            direccion=random.choice(DIRECCIONES),
             titulo=random.choice(TITULOS_INTERRUPCION),
             descripcion="Reportado por el cliente y confirmado por monitoreo.",
             prioridad=random.choice(list(Prioridad)),
             estado=EstadoInterrupcion.NUEVA,
+            categoria=categoria,
             creado_por_id=creador.id,
             creado_en=creado,
             foto_key=_subir(f"interrupciones/{folio}/foto.jpg", "foto"),
@@ -351,7 +391,10 @@ def seed() -> None:
             total_inter += 1
             continue
 
-        operador = random.choice(operadores)
+        if categoria is CategoriaInterrupcion.SITIO_WIFI and random.random() < 0.75:
+            operador = random.choice(tecnicos_wifi)
+        else:
+            operador = random.choice(operadores)
         t_asig = creado + timedelta(minutes=random.randint(10, 240))
         inter.asignado_a_id, inter.asignado_en = operador.id, t_asig
         inter.estado = EstadoInterrupcion.ASIGNADA
@@ -434,7 +477,7 @@ def seed() -> None:
 
     db.session.commit()
     click.echo(
-        f"Sembrados 8 usuarios, {total_ordenes} ordenes y {total_inter} interrupciones."
+        f"Sembrados 9 usuarios, {total_ordenes} ordenes y {total_inter} interrupciones."
     )
     click.echo(f"Ingresa como '{admin.usuario}' con la contrasena de ADMIN_PASSWORD.")
     click.echo(f"Los demas usuarios usan la contrasena de SEED_PASSWORD ({clave}).")

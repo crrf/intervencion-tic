@@ -48,6 +48,26 @@ def test_el_agente_de_fibra_no_ve_ordenes_ni_interrupciones_sin_derivar(
     assert cliente.get(inter.url_detalle).status_code == 200
 
 
+def test_el_despachador_ve_en_el_tablero_las_ordenes_con_ok(
+    cliente, nueva_orden, despachador, operador
+):
+    """El OK del operador tiene que llegarle a la vista al despachador."""
+    orden = nueva_orden(despachador, asignado_a=operador)
+    ejecutar_transicion(orden, operador, "estado:EN_PROCESO")
+    ejecutar_transicion(orden, operador, "estado:OK_OPERADOR", comentario="terminado")
+    db.session.commit()
+
+    entrar(cliente, despachador)
+    tablero = cliente.get("/tablero?tipo=ordenes")
+    assert tablero.status_code == 200
+    cuerpo = tablero.get_data(as_text=True)
+    assert "OK del operador" in cuerpo
+    assert "Cerrada en SIPREC" in cuerpo
+
+    # Y el dashboard le dice cuantas esperan ese cierre.
+    assert "por cerrar en SIPREC" in cliente.get("/dashboard/").get_data(as_text=True)
+
+
 def test_gestion_cerrada_a_operadores(cliente, operador):
     entrar(cliente, operador)
     for ruta in ("/buscar/", "/reportes/historico", "/reportes/auditoria", "/dashboard/"):

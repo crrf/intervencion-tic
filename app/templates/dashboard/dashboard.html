@@ -39,6 +39,10 @@
     <div class="valor">{{ resumen.abiertos }}</div>
     <div class="etiqueta">Abiertos ahora</div>
   </div>
+  <div class="metrica acento-cian">
+    <div class="valor">{{ resumen.ok_por_cerrar }}</div>
+    <div class="etiqueta">Con OK, por cerrar en SIPREC</div>
+  </div>
   <div class="metrica acento-verde">
     <div class="valor">{{ resumen.cerrados_periodo }}</div>
     <div class="etiqueta">Cerrados en el periodo</div>
@@ -64,14 +68,15 @@
 <div class="panel">
   <h2>Desempeno por operador</h2>
   <p class="tenue pequeno">
-    Las <strong>soluciones</strong> se atribuyen a quien ejecuto el cierre en el periodo, no a
-    quien figuraba como asignado. Los <strong>pendientes</strong> son un corte al momento.
+    Las <strong>soluciones</strong> se atribuyen a quien dio el trabajo por terminado en el
+    periodo (el OK en las ordenes, el cierre en las interrupciones), no a quien figuraba como
+    asignado. Los <strong>pendientes</strong> son un corte al momento.
   </p>
   <div class="tabla-contenedor">
     <table class="apilable">
       <thead>
         <tr>
-          <th>Operador</th>
+          <th>Operador / tecnico</th>
           <th class="num">Asignados</th>
           <th class="num">Soluciones</th>
           <th class="num">Pendientes</th>

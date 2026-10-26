@@ -22,6 +22,8 @@ NOMBRES_EVENTO = {
     "foto_reverso": "Cambio de foto (reverso)",
     "foto": "Cambio de foto",
     "telefono_contacto": "Telefono de contacto",
+    "direccion": "Direccion",
+    "categoria": "Categoria",
 }
 
 CLASES = {"cambio": "Cambio", "comentario": "Comentario"}

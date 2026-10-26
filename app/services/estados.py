@@ -16,6 +16,7 @@ from dataclasses import dataclass
 
 from app.models.base import ahora
 from app.models.enums import (
+    CategoriaInterrupcion,
     Dependencia,
     EstadoFibra,
     EstadoInterrupcion,
@@ -49,6 +50,9 @@ ADMIN = Concesion(RolUsuario.ADMIN)
 DESPACHADOR = Concesion(RolUsuario.DESPACHADOR)
 OPERADOR = Concesion(RolUsuario.OPERADOR, solo_asignado=True)
 FIBRA = Concesion(RolUsuario.AGENTE_FIBRA)
+#: El tecnico de wifi trabaja su interrupcion igual que un operador. No se le
+#: suma a las transiciones de las ordenes de trabajo: esas no las ve.
+TECNICO_WIFI = Concesion(RolUsuario.TECNICO_WIFI, solo_asignado=True)
 
 
 @dataclass(frozen=True)
@@ -86,6 +90,10 @@ class Transicion:
 
 # ---------------------------------------------------------------------------
 # Orden de trabajo
+#
+# El operador nunca cierra una orden: cuando termina da su OK y la orden pasa
+# a "OK del operador", donde el despachador la ve y la cierra en SIPREC. Si
+# el OK no procede, el despachador la devuelve a proceso.
 # ---------------------------------------------------------------------------
 TRANSICIONES_ORDEN: tuple[Transicion, ...] = (
     Transicion(
@@ -104,11 +112,12 @@ TRANSICIONES_ORDEN: tuple[Transicion, ...] = (
     ),
     Transicion(
         EstadoOrden.EN_PROCESO,
-        EstadoOrden.CERRADA,
-        "Cerrar orden",
+        EstadoOrden.OK_OPERADOR,
+        "Dar OK del trabajo",
         (OPERADOR, ADMIN),
         exige_comentario=True,
-        ayuda="Describe el trabajo realizado.",
+        ayuda="Describe el trabajo realizado. El despachador la cerrara en "
+        "SIPREC.",
     ),
     Transicion(
         EstadoOrden.EN_PROCESO,
@@ -117,7 +126,7 @@ TRANSICIONES_ORDEN: tuple[Transicion, ...] = (
         (OPERADOR, ADMIN),
         exige_comentario=True,
         exige_motivo=True,
-        ayuda="Indica por que no se puede cerrar todavia.",
+        ayuda="Indica por que no se puede dar el OK todavia.",
     ),
     Transicion(
         EstadoOrden.ABIERTA_CON_MOTIVO,
@@ -127,10 +136,27 @@ TRANSICIONES_ORDEN: tuple[Transicion, ...] = (
     ),
     Transicion(
         EstadoOrden.ABIERTA_CON_MOTIVO,
-        EstadoOrden.CERRADA,
-        "Cerrar orden",
+        EstadoOrden.OK_OPERADOR,
+        "Dar OK del trabajo",
         (OPERADOR, ADMIN),
         exige_comentario=True,
+        ayuda="Describe como quedo resuelto lo que mantenia abierta la orden.",
+    ),
+    Transicion(
+        EstadoOrden.OK_OPERADOR,
+        EstadoOrden.CERRADA,
+        "Cerrada en SIPREC",
+        (DESPACHADOR, ADMIN),
+        exige_comentario=True,
+        ayuda="Deja constancia del cierre registrado en SIPREC.",
+    ),
+    Transicion(
+        EstadoOrden.OK_OPERADOR,
+        EstadoOrden.EN_PROCESO,
+        "Devolver al operador",
+        (DESPACHADOR, ADMIN),
+        exige_comentario=True,
+        ayuda="El OK no procede: explica que falta y la orden vuelve al operador.",
     ),
     Transicion(
         EstadoOrden.CERRADA,
@@ -159,13 +185,13 @@ TRANSICIONES_INTERRUPCION: tuple[Transicion, ...] = (
         EstadoInterrupcion.ASIGNADA,
         EstadoInterrupcion.EN_PROCESO,
         "Tomar / iniciar diagnostico",
-        (OPERADOR, ADMIN),
+        (OPERADOR, TECNICO_WIFI, ADMIN),
     ),
     Transicion(
         EstadoInterrupcion.EN_PROCESO,
         EstadoInterrupcion.CERRADA,
         "Cerrar interrupcion",
-        (OPERADOR, ADMIN),
+        (OPERADOR, TECNICO_WIFI, ADMIN),
         exige_comentario=True,
         exige_dependencia=True,
         ayuda="Clasifica la dependencia y describe la solucion.",
@@ -174,7 +200,7 @@ TRANSICIONES_INTERRUPCION: tuple[Transicion, ...] = (
         EstadoInterrupcion.EN_PROCESO,
         EstadoInterrupcion.DERIVADA_FIBRA,
         "Derivar a fibra optica",
-        (OPERADOR, ADMIN),
+        (OPERADOR, TECNICO_WIFI, ADMIN),
         exige_comentario=True,
         exige_dependencia=True,
         exige_capa_fisica=True,
@@ -184,7 +210,7 @@ TRANSICIONES_INTERRUPCION: tuple[Transicion, ...] = (
         EstadoInterrupcion.EN_PROCESO,
         EstadoInterrupcion.ABIERTA_OTRO_MOTIVO,
         "Dejar abierta / otro motivo",
-        (OPERADOR, ADMIN),
+        (OPERADOR, TECNICO_WIFI, ADMIN),
         exige_comentario=True,
         exige_motivo=True,
         exige_dependencia=True,
@@ -193,20 +219,20 @@ TRANSICIONES_INTERRUPCION: tuple[Transicion, ...] = (
         EstadoInterrupcion.ABIERTA_OTRO_MOTIVO,
         EstadoInterrupcion.EN_PROCESO,
         "Retomar diagnostico",
-        (OPERADOR, ADMIN),
+        (OPERADOR, TECNICO_WIFI, ADMIN),
     ),
     Transicion(
         EstadoInterrupcion.ABIERTA_OTRO_MOTIVO,
         EstadoInterrupcion.CERRADA,
         "Cerrar interrupcion",
-        (OPERADOR, ADMIN),
+        (OPERADOR, TECNICO_WIFI, ADMIN),
         exige_comentario=True,
     ),
     Transicion(
         EstadoInterrupcion.DERIVADA_FIBRA,
         EstadoInterrupcion.CERRADA,
         "Cerrar interrupcion",
-        (OPERADOR, ADMIN),
+        (OPERADOR, TECNICO_WIFI, ADMIN),
         exige_comentario=True,
         ayuda="Cierra tras revisar la respuesta del agente de fibra.",
     ),
@@ -214,7 +240,7 @@ TRANSICIONES_INTERRUPCION: tuple[Transicion, ...] = (
         EstadoInterrupcion.DERIVADA_FIBRA,
         EstadoInterrupcion.EN_PROCESO,
         "Retomar (quitar de fibra)",
-        (OPERADOR, ADMIN),
+        (OPERADOR, TECNICO_WIFI, ADMIN),
         exige_comentario=True,
     ),
     Transicion(
@@ -258,6 +284,33 @@ def _construir_transiciones_fibra() -> tuple[Transicion, ...]:
 
 
 TRANSICIONES_FIBRA: tuple[Transicion, ...] = _construir_transiciones_fibra()
+
+
+# ---------------------------------------------------------------------------
+# A quien se le puede entregar un ticket
+# ---------------------------------------------------------------------------
+def validar_destinatario(ticket, destinatario, *, categoria=None) -> None:
+    """Comprueba que el ticket se le pueda entregar a ese usuario.
+
+    Las ordenes de trabajo solo van a operadores. Las interrupciones tambien,
+    y las de sitio wifi admiten ademas al tecnico de wifi: a el no se le
+    entrega nada mas. Un usuario que sea operador Y tecnico de wifi recibe
+    cualquier cosa, por su rol de operador.
+
+    `categoria` permite preguntar por una categoria distinta de la que el
+    ticket tiene ahora, que es lo que hace falta ANTES de cambiarsela.
+    """
+    if destinatario is None or not destinatario.activo:
+        raise TransicionInvalida("El destinatario debe ser un operador activo.")
+    if destinatario.tiene_rol(RolUsuario.OPERADOR):
+        return
+    if destinatario.tiene_rol(RolUsuario.TECNICO_WIFI) and isinstance(ticket, Interrupcion):
+        if (categoria or ticket.categoria) is CategoriaInterrupcion.SITIO_WIFI:
+            return
+        raise TransicionInvalida(
+            "Al tecnico de wifi solo se le pueden entregar interrupciones de sitio wifi."
+        )
+    raise TransicionInvalida("El destinatario debe ser un operador activo.")
 
 
 # ---------------------------------------------------------------------------
@@ -316,6 +369,7 @@ def ejecutar_transicion(
     dependencia: Dependencia | str | None = None,
     asignado_a=None,
     telefono_contacto: str | None = None,
+    direccion: str | None = None,
 ) -> Transicion:
     """Aplica una transicion validando permisos y datos obligatorios.
 
@@ -323,7 +377,11 @@ def ejecutar_transicion(
     estado, el comentario, el historial y las notificaciones formen una sola
     transaccion.
     """
-    from app.models.base import normalizar_telefono, telefono_valido
+    from app.models.base import (
+        normalizar_direccion,
+        normalizar_telefono,
+        telefono_valido,
+    )
     from app.services import notificaciones as notif
     from app.services.tickets import agregar_comentario, registrar_historial
 
@@ -362,8 +420,16 @@ def ejecutar_transicion(
     if transicion.exige_asignado:
         if asignado_a is None:
             raise TransicionInvalida("Debes elegir el operador al que se asigna el ticket.")
-        if not asignado_a.tiene_rol(RolUsuario.OPERADOR) or not asignado_a.activo:
-            raise TransicionInvalida("El destinatario debe ser un operador activo.")
+        validar_destinatario(ticket, asignado_a)
+
+    # --- Direccion del sitio ----------------------------------------------
+    # Igual que el telefono: opcional, pero es al asignar cuando mas falta le
+    # hace a quien tiene que ir al sitio.
+    if direccion is not None and direccion.strip():
+        limpia = normalizar_direccion(direccion)
+        if limpia != ticket.direccion:
+            registrar_historial(ticket, usuario, "direccion", ticket.direccion, limpia)
+            ticket.direccion = limpia
 
     # --- Telefono de contacto ---------------------------------------------
     # Opcional, pero es al asignar cuando mas falta le hace al operador, asi
@@ -402,6 +468,19 @@ def ejecutar_transicion(
             notif.avisar_cierre(ticket, usuario)
         elif anterior is not None and anterior.name == "CERRADA":
             ticket.cerrado_en = None  # reapertura
+
+        # El OK del operador solo sirve si el despachador lo ve; y si lo
+        # devuelve, el operador tiene que enterarse de que falta algo.
+        # Del OK salen DOS caminos (cerrar y devolver), asi que no basta con
+        # mirar de donde viene: solo es devolucion si vuelve a proceso.
+        if transicion.destino.name == "OK_OPERADOR":
+            notif.avisar_ok_del_operador(ticket, usuario)
+        elif (
+            anterior is not None
+            and anterior.name == "OK_OPERADOR"
+            and transicion.destino.name == "EN_PROCESO"
+        ):
+            notif.avisar_ok_devuelto(ticket, usuario)
 
         if transicion.destino.name == "DERIVADA_FIBRA":
             ticket.derivado_fibra_en = ahora()

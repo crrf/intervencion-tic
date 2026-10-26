@@ -86,7 +86,7 @@ def _registrar_blueprints(app: Flask) -> None:
 
 
 def _registrar_filtros(app: Flask) -> None:
-    from app.models.enums import COLORES_ESTADO, COLORES_PRIORIDAD
+    from app.models.enums import COLORES_CATEGORIA, COLORES_ESTADO, COLORES_PRIORIDAD
     from app.services.consultas import formatear_duracion, zona_app
 
     @app.template_filter("fecha")
@@ -113,6 +113,11 @@ def _registrar_filtros(app: Flask) -> None:
         nombre = getattr(prioridad, "name", prioridad)
         return COLORES_PRIORIDAD.get(nombre, "gris")
 
+    @app.template_filter("color_categoria")
+    def _color_categoria(categoria):
+        nombre = getattr(categoria, "name", categoria)
+        return COLORES_CATEGORIA.get(nombre, "gris")
+
     @app.template_filter("nl2br")
     def _nl2br(texto):
         from markupsafe import Markup, escape
@@ -124,6 +129,7 @@ def _registrar_filtros(app: Flask) -> None:
 
 def _registrar_contexto(app: Flask) -> None:
     from app.models.enums import (
+        CategoriaInterrupcion,
         Dependencia,
         EstadoFibra,
         EstadoInterrupcion,
@@ -149,6 +155,7 @@ def _registrar_contexto(app: Flask) -> None:
             "EstadoInterrupcion": EstadoInterrupcion,
             "EstadoFibra": EstadoFibra,
             "Dependencia": Dependencia,
+            "CategoriaInterrupcion": CategoriaInterrupcion,
             "Prioridad": Prioridad,
             "notificaciones_sin_leer": sin_leer,
             "solo_fibra": solo_fibra,

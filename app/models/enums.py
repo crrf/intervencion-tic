@@ -36,6 +36,10 @@ class RolUsuario(_EnumEtiquetado):
     DESPACHADOR = "Despachador"
     OPERADOR = "Operador"
     AGENTE_FIBRA = "Agente de fibra"
+    #: Va al sitio wifi a detectar la falla y, si puede, a resolverla. Trabaja
+    #: la interrupcion igual que un operador, pero solo se le entregan las de
+    #: categoria SITIO_WIFI.
+    TECNICO_WIFI = "Tecnico de wifi"
 
 
 class TipoTicket(_EnumEtiquetado):
@@ -52,7 +56,23 @@ class EstadoOrden(_EnumEtiquetado):
     ASIGNADA = "Asignada"
     EN_PROCESO = "En proceso"
     ABIERTA_CON_MOTIVO = "Abierta con motivo"
+    #: El operador dio el trabajo por bueno. La orden NO se cierra aqui: queda
+    #: a la vista del despachador, que la cierra en SIPREC. Para metricas y
+    #: filtros sigue contando como abierta.
+    OK_OPERADOR = "OK del operador"
     CERRADA = "Cerrada"
+
+
+class CategoriaInterrupcion(_EnumEtiquetado):
+    """Que se cayo: el enlace de un cliente o un sitio wifi.
+
+    La fija el despachador al crear la interrupcion (no el operador al
+    diagnosticar, como la dependencia) porque la necesita para saber a quien
+    se la entrega.
+    """
+
+    ENLACE_CLIENTE = "Enlace de cliente"
+    SITIO_WIFI = "Sitio wifi"
 
 
 class EstadoInterrupcion(_EnumEtiquetado):
@@ -98,6 +118,7 @@ COLORES_ESTADO = {
     "DERIVADA_FIBRA": "violeta",
     "ABIERTA_CON_MOTIVO": "rojo",
     "ABIERTA_OTRO_MOTIVO": "rojo",
+    "OK_OPERADOR": "cian",
     "CERRADA": "verde",
     "EN_REVISION": "ambar",
     "FIBRA_OK": "verde",
@@ -105,3 +126,9 @@ COLORES_ESTADO = {
 }
 
 COLORES_PRIORIDAD = {"BAJA": "gris", "MEDIA": "azul", "ALTA": "ambar", "CRITICA": "rojo"}
+
+#: Solo se pinta la insignia de sitio wifi: el enlace de cliente es lo normal
+#: y marcarlo seria ruido en la tarjeta. El fucsia es exclusivo de esta
+#: categoria: el violeta ya significa "derivada a fibra" y las dos insignias
+#: conviven en la misma tarjeta.
+COLORES_CATEGORIA = {"ENLACE_CLIENTE": "gris", "SITIO_WIFI": "fucsia"}

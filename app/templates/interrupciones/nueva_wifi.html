@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block titulo %}Nueva interrupcion de sitio wifi{% endblock %}
+
+{#
+  Flujo propio, aparte de la interrupcion de enlace de cliente: aqui la
+  categoria no se elige, ya es "Sitio wifi", y el selector ofrece primero a
+  los tecnicos de wifi, que son los unicos que reciben este tipo.
+#}
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1 class="mb0">
+      Nueva interrupcion de sitio wifi
+      <span class="insignia {{ CategoriaInterrupcion.SITIO_WIFI | color_categoria }}">
+        {{ CategoriaInterrupcion.SITIO_WIFI.etiqueta }}
+      </span>
+    </h1>
+    <p class="suave mb0">
+      Para una falla en un sitio wifi. La atiende un tecnico de wifi, que va al
+      sitio a detectarla y resolverla.
+    </p>
+  </div>
+  <div class="acciones">
+    <a class="btn" href="{{ url_for('interrupciones.nueva') }}">
+      Es de un enlace de cliente
+    </a>
+  </div>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="panel">
+    <h2>Datos del sitio</h2>
+    <div class="rejilla">
+      <div class="campo">
+        <label class="obligatorio" for="nombre_cliente">Sitio o cliente</label>
+        <input type="text" id="nombre_cliente" name="nombre_cliente"
+               value="{{ datos.nombre_cliente or '' }}" maxlength="160"
+               placeholder="Plaza Bolivar, Ambulatorio Norte..." required>
+        <div class="ayuda">El nombre con el que se conoce el sitio wifi.</div>
+      </div>
+      <div class="campo">
+        <label for="telefono_contacto">
+          Telefono de contacto <span class="insignia azul">Recomendado</span>
+        </label>
+        <input type="tel" id="telefono_contacto" name="telefono_contacto"
+               value="{{ datos.telefono_contacto or '' }}" maxlength="40"
+               placeholder="0414-1234567" pattern="[0-9+(). -]{7,40}">
+        <div class="ayuda">
+          De quien abre el sitio: sin eso el tecnico puede no poder entrar.
+        </div>
+      </div>
+      <div class="campo">
+        <label for="prioridad">Prioridad</label>
+        <select id="prioridad" name="prioridad">
+          {% for p in Prioridad %}
+            <option value="{{ p.name }}" {{ "selected" if (datos.prioridad or "MEDIA") == p.name }}>
+              {{ p.etiqueta }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo campo-ancho">
+        <label for="direccion">
+          Direccion <span class="insignia azul">Recomendado</span>
+        </label>
+        <input type="text" id="direccion" name="direccion"
+               value="{ datos.direccion or '' }" maxlength="240"
+               placeholder="Av. Principal, edificio, piso, punto de referencia...">
+        <div class="ayuda">Donde esta el sitio wifi. Es lo primero que necesita el tecnico para llegar.</div>
+      </div>
+      <div class="campo">
+        <label for="asignado_a_id">Asignar a (opcional)</label>
+        <select id="asignado_a_id" name="asignado_a_id">
+          <option value="">Dejar sin asignar</option>
+          {% if tecnicos %}
+            <optgroup label="Tecnicos de wifi">
+              {% for t in tecnicos %}
+                <option value="{{ t.id }}" {{ "selected" if datos.asignado_a_id == t.id|string }}>
+                  {{ t.nombre_completo }}
+                </option>
+              {% endfor %}
+            </optgroup>
+          {% endif %}
+          {% if operadores %}
+            <optgroup label="Operadores">
+              {% for op in operadores %}
+                <option value="{{ op.id }}" {{ "selected" if datos.asignado_a_id == op.id|string }}>
+                  {{ op.nombre_completo }}
+                </option>
+              {% endfor %}
+            </optgroup>
+          {% endif %}
+        </select>
+        <div class="ayuda">
+          {% if tecnicos %}
+            Lo normal es un tecnico de wifi; un operador solo si no hay ninguno
+            disponible.
+          {% else %}
+            No hay ningun tecnico de wifi activo. Crea uno en Usuarios o
+            asignala a un operador.
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="campo">
+      <label class="obligatorio" for="titulo">Que esta pasando</label>
+      <input type="text" id="titulo" name="titulo" value="{{ datos.titulo or '' }}"
+             maxlength="200" placeholder="El sitio wifi no da servicio" required>
+    </div>
+    <div class="campo">
+      <label for="descripcion">Descripcion</label>
+      <textarea id="descripcion" name="descripcion"
+                placeholder="Como se reporto, que se ve desde monitoreo, desde cuando...">{{ datos.descripcion or '' }}</textarea>
+    </div>
+
+    <p class="tenue pequeno mb0">
+      La dependencia (Core, Distribucion o Capa fisica) no se define aqui: la
+      clasifica quien atiende el sitio cuando diagnostica.
+    </p>
+  </div>
+
+  <div class="panel">
+    <h2>Foto del sitio <span class="insignia azul">Recomendado</span></h2>
+    <div class="campo">
+      <label for="foto">Foto</label>
+      <input type="file" id="foto" name="foto" accept="image/*">
+      <div class="ayuda">
+        No es obligatoria, pero le da contexto a quien va al sitio. Se puede
+        agregar despues desde el detalle. Formatos jpg, png o webp.
+      </div>
+    </div>
+  </div>
+
+  <div class="acciones">
+    <button class="btn btn-primario" type="submit">Crear interrupcion de wifi</button>
+    <a class="btn" href="{{ url_for('tablero.ver', tipo='interrupciones') }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

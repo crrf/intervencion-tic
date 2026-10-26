@@ -19,10 +19,14 @@ def fila_de(filas, usuario):
     return next(f for f in filas if f["operador"].id == usuario.id)
 
 
-def test_las_soluciones_se_atribuyen_a_quien_cerro(
+def test_las_soluciones_se_atribuyen_a_quien_resolvio(
     nueva_orden, despachador, operador, operador_b, admin
 ):
-    """El ticket lo cierra el operador B tras una reasignacion: la solucion es suya."""
+    """El OK lo da el operador B tras una reasignacion: la solucion es suya.
+
+    Que despues el despachador la cierre en SIPREC no le quita el merito
+    ni se lo acredita a el.
+    """
     orden = nueva_orden(despachador, asignado_a=operador)
     ejecutar_transicion(orden, operador, "estado:EN_PROCESO")
     db.session.commit()
@@ -30,12 +34,45 @@ def test_las_soluciones_se_atribuyen_a_quien_cerro(
     from app.services.tickets import reasignar
 
     reasignar(orden, despachador, operador_b)
-    ejecutar_transicion(orden, operador_b, "estado:CERRADA", comentario="cerrado por B")
+    ejecutar_transicion(orden, operador_b, "estado:OK_OPERADOR", comentario="OK de B")
+    ejecutar_transicion(orden, despachador, "estado:CERRADA", comentario="en SIPREC")
     db.session.commit()
 
     filas = metricas.por_operador(rango(), admin)
     assert fila_de(filas, operador_b)["soluciones"] == 1
     assert fila_de(filas, operador)["soluciones"] == 0
+    assert not any(f["operador"].id == despachador.id for f in filas)
+
+
+def test_el_ok_ya_cuenta_como_solucion_aunque_no_se_haya_cerrado(
+    nueva_orden, despachador, operador, admin
+):
+    orden = nueva_orden(despachador, asignado_a=operador)
+    ejecutar_transicion(orden, operador, "estado:EN_PROCESO")
+    ejecutar_transicion(orden, operador, "estado:OK_OPERADOR", comentario="terminado")
+    db.session.commit()
+
+    fila = fila_de(metricas.por_operador(rango(), admin), operador)
+    assert fila["soluciones"] == 1
+    assert fila["pendientes"] == 1  # sigue abierta hasta el cierre en SIPREC
+
+    r = metricas.resumen(rango(), admin)
+    assert r["ok_por_cerrar"] == 1
+    assert r["abiertos"] == 1
+    assert r["cerrados_periodo"] == 0
+
+
+def test_el_ok_devuelto_y_repetido_es_una_sola_solucion(
+    nueva_orden, despachador, operador, admin
+):
+    orden = nueva_orden(despachador, asignado_a=operador)
+    ejecutar_transicion(orden, operador, "estado:EN_PROCESO")
+    ejecutar_transicion(orden, operador, "estado:OK_OPERADOR", comentario="terminado")
+    ejecutar_transicion(orden, despachador, "estado:EN_PROCESO", comentario="falta algo")
+    ejecutar_transicion(orden, operador, "estado:OK_OPERADOR", comentario="ahora si")
+    db.session.commit()
+
+    assert fila_de(metricas.por_operador(rango(), admin), operador)["soluciones"] == 1
 
 
 def test_pendientes_es_un_corte_actual(nueva_orden, despachador, operador, admin):
@@ -43,7 +80,8 @@ def test_pendientes_es_un_corte_actual(nueva_orden, despachador, operador, admin
     cerrada = nueva_orden(despachador, asignado_a=operador, identificador_externo="ED222222")
 
     ejecutar_transicion(cerrada, operador, "estado:EN_PROCESO")
-    ejecutar_transicion(cerrada, operador, "estado:CERRADA", comentario="listo")
+    ejecutar_transicion(cerrada, operador, "estado:OK_OPERADOR", comentario="listo")
+    ejecutar_transicion(cerrada, despachador, "estado:CERRADA", comentario="en SIPREC")
     db.session.commit()
 
     fila = fila_de(metricas.por_operador(rango(), admin), operador)
@@ -120,7 +158,8 @@ def test_por_dependencia_cuenta_las_sin_clasificar(
 def test_el_periodo_acota_las_cifras(nueva_orden, despachador, operador, admin):
     vieja = nueva_orden(despachador, asignado_a=operador)
     ejecutar_transicion(vieja, operador, "estado:EN_PROCESO")
-    ejecutar_transicion(vieja, operador, "estado:CERRADA", comentario="listo")
+    ejecutar_transicion(vieja, operador, "estado:OK_OPERADOR", comentario="listo")
+    ejecutar_transicion(vieja, despachador, "estado:CERRADA", comentario="en SIPREC")
     db.session.commit()
 
     # Se envejece el cierre: queda fuera de la ventana de 30 dias pero dentro

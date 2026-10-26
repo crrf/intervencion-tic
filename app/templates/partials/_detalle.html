@@ -11,6 +11,9 @@
       <span class="mono">{{ ticket.folio }}</span>
       <span class="insignia {{ ticket.estado | color_estado }}">{{ ticket.estado.etiqueta }}</span>
       <span class="insignia {{ ticket.prioridad | color_prioridad }}">{{ ticket.prioridad.etiqueta }}</span>
+      {% if es_interrupcion and ticket.es_sitio_wifi %}
+        <span class="insignia {{ ticket.categoria | color_categoria }}">{{ ticket.categoria.etiqueta }}</span>
+      {% endif %}
       {% if es_interrupcion and ticket.estado_fibra and ticket.estado.name == "DERIVADA_FIBRA" %}
         <span class="insignia {{ ticket.estado_fibra | color_estado }}">{{ ticket.estado_fibra.etiqueta }}</span>
       {% endif %}
@@ -49,7 +52,13 @@
       <div class="datos">
         <div class="dato">
           <div class="etiqueta">Identificador externo</div>
-          <div class="valor mono">{{ ticket.identificador_externo }}</div>
+          <div class="valor mono">
+            {% if ticket.identificador_externo %}
+              {{ ticket.identificador_externo }}
+            {% else %}
+              <span class="tenue">No aplica</span>
+            {% endif %}
+          </div>
         </div>
         <div class="dato">
           <div class="etiqueta">Cliente</div>
@@ -60,6 +69,16 @@
           <div class="valor">
             {% if ticket.telefono_contacto %}
               <a href="tel:{{ ticket.telefono_marcable }}">{{ ticket.telefono_contacto }}</a>
+            {% else %}
+              <span class="tenue">Sin registrar</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="dato">
+          <div class="etiqueta">Direccion</div>
+          <div class="valor">
+            {% if ticket.direccion %}
+              {{ ticket.direccion }}
             {% else %}
               <span class="tenue">Sin registrar</span>
             {% endif %}
@@ -84,6 +103,10 @@
           </div>
         </div>
         {% if es_interrupcion %}
+          <div class="dato">
+            <div class="etiqueta">Categoria</div>
+            <div class="valor">{{ ticket.categoria.etiqueta }}</div>
+          </div>
           <div class="dato">
             <div class="etiqueta">Dependencia</div>
             <div class="valor">
@@ -142,7 +165,7 @@
                     <select name="asignado_a_id" required>
                       <option value="">Selecciona...</option>
                       {% for op in operadores %}
-                        <option value="{{ op.id }}">{{ op.nombre_completo }}</option>
+                        <option value="{{ op.id }}">{{ op.etiqueta_asignacion }}</option>
                       {% endfor %}
                     </select>
                   </div>
@@ -197,9 +220,32 @@
       {% endif %}
     </div>
 
+    {% if es_interrupcion and puede_gestionar() and ticket.abierto %}
+      <div class="panel">
+        <h2>Categoria</h2>
+        <form method="post" action="{{ url_for('interrupciones.cambiar_categoria', interrupcion_id=ticket.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="campo">
+            <select name="categoria" required>
+              {% for c in CategoriaInterrupcion %}
+                <option value="{{ c.name }}" {{ "selected" if ticket.categoria.name == c.name }}>
+                  {{ c.etiqueta }}
+                </option>
+              {% endfor %}
+            </select>
+            <div class="ayuda">
+              Solo las de sitio wifi se le pueden entregar al tecnico de wifi.
+            </div>
+          </div>
+          <button class="btn btn-bloque" type="submit">Guardar categoria</button>
+        </form>
+      </div>
+    {% endif %}
+
     {% if es_interrupcion and ticket.abierto
           and (current_user.tiene_rol(RolUsuario.ADMIN)
-               or (current_user.tiene_rol(RolUsuario.OPERADOR) and ticket.asignado_a_id == current_user.id)) %}
+               or (current_user.tiene_alguno(RolUsuario.OPERADOR, RolUsuario.TECNICO_WIFI)
+                   and ticket.asignado_a_id == current_user.id)) %}
       <div class="panel">
         <h2>Clasificar dependencia</h2>
         <form method="post" action="{{ url_for('interrupciones.clasificar', interrupcion_id=ticket.id) }}">
@@ -221,21 +267,29 @@
     {% endif %}
 
     {% if puede_gestionar() and ticket.abierto %}
-      <div class="panel {{ 'destacado' if not ticket.telefono_contacto }}">
-        <h2>Telefono de contacto</h2>
-        <form method="post" action="{{ url_for(endpoint_telefono, **ident) }}">
+      <div class="panel {{ 'destacado' if not ticket.telefono_contacto or not ticket.direccion }}">
+        <h2>Datos de contacto</h2>
+        <form method="post" action="{{ url_for(endpoint_contacto, **ident) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="campo">
-            <input type="tel" name="telefono_contacto" maxlength="40"
+            <label for="d-telefono">Telefono</label>
+            <input type="tel" id="d-telefono" name="telefono_contacto" maxlength="40"
                    value="{{ ticket.telefono_contacto or '' }}"
                    placeholder="0414-1234567" pattern="[0-9+(). -]{7,40}">
-            {% if not ticket.telefono_contacto %}
-              <div class="ayuda">
-                Recomendado: sin telefono, el operador no puede coordinar el acceso al sitio.
-              </div>
-            {% endif %}
           </div>
-          <button class="btn btn-bloque" type="submit">Guardar telefono</button>
+          <div class="campo">
+            <label for="d-direccion">Direccion</label>
+            <input type="text" id="d-direccion" name="direccion" maxlength="240"
+                   value="{{ ticket.direccion or '' }}"
+                   placeholder="Av. Principal, edificio, punto de referencia...">
+          </div>
+          {% if not ticket.telefono_contacto or not ticket.direccion %}
+            <div class="ayuda mb">
+              Recomendados: sin telefono ni direccion, quien va al sitio no puede
+              coordinar el acceso ni sabe adonde llegar.
+            </div>
+          {% endif %}
+          <button class="btn btn-bloque" type="submit">Guardar contacto</button>
         </form>
       </div>
     {% endif %}
@@ -249,7 +303,7 @@
             <select name="nuevo_operador_id" required>
               {% for op in operadores %}
                 <option value="{{ op.id }}" {{ "selected" if op.id == ticket.asignado_a_id }}>
-                  {{ op.nombre_completo }}
+                  {{ op.etiqueta_asignacion }}
                 </option>
               {% endfor %}
             </select>

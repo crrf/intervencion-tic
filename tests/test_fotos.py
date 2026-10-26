@@ -115,14 +115,64 @@ def test_si_falla_la_segunda_cara_no_queda_huerfana_la_primera(app, despachador,
 # ---------------------------------------------------------------------------
 # Datos del ticket (siguen siendo obligatorios)
 # ---------------------------------------------------------------------------
-def test_identificador_invalido(app, despachador):
-    with pytest.raises(DatosInvalidos, match="dos letras y seis digitos"):
-        _orden(despachador, identificador_externo="12345")
+@pytest.mark.parametrize(
+    "identificador",
+    [
+        "ED1",                  # un solo digito
+        "ED12",
+        "ED1234",
+        "FD123456",             # el de siempre
+        "ED12345678901234",     # y los que traiga
+        "WF98765",              # cualquier par de letras, no solo ED o FD
+        "ZZ9999",
+    ],
+)
+def test_identificadores_validos(app, despachador, identificador):
+    """Dos letras y los digitos que sean: la cantidad no se restringe."""
+    orden = _orden(despachador, identificador_externo=identificador)
+    assert orden.identificador_externo == identificador
+
+
+@pytest.mark.parametrize(
+    "identificador",
+    [
+        "12345",         # sin letras
+        "E123456",       # una sola letra
+        "EDF123456",     # tres letras
+        "ED12A456",      # una letra en medio de los digitos
+        "ED",            # sin digitos
+        "ED-123",        # separadores no
+        "ED" + "1" * 19,  # no cabe en la columna
+    ],
+)
+def test_identificadores_invalidos(app, despachador, identificador):
+    with pytest.raises(DatosInvalidos, match="dos letras y despues solo digitos"):
+        _orden(despachador, identificador_externo=identificador)
 
 
 def test_identificador_se_normaliza_a_mayusculas(app, despachador):
     orden = _orden(despachador, identificador_externo=" ed987654 ")
     assert orden.identificador_externo == "ED987654"
+
+
+def test_los_espacios_se_quitan_al_pegarlo(app, despachador):
+    """Se pega tal cual del sistema externo, con espacios y todo."""
+    orden = _orden(despachador, identificador_externo="ED 123 456")
+    assert orden.identificador_externo == "ED123456"
+
+
+def test_la_orden_sigue_exigiendo_identificador(app, despachador):
+    with pytest.raises(DatosInvalidos, match="identificador"):
+        _orden(despachador, identificador_externo="")
+
+
+def test_el_formulario_no_limita_los_digitos(cliente, despachador):
+    """El `pattern` del HTML no debe ser mas estricto que el servidor."""
+    cliente.post("/login", data={"usuario": despachador.usuario, "password": CLAVE})
+    for ruta in ("/ordenes/nueva", "/interrupciones/nueva"):
+        html = cliente.get(ruta).get_data(as_text=True)
+        assert 'pattern="[A-Za-z]{2}[0-9]+"' in html, ruta
+        assert 'maxlength="20"' in html, ruta
 
 
 # ---------------------------------------------------------------------------
@@ -170,7 +220,8 @@ def test_no_se_cambian_fotos_de_un_ticket_cerrado(nueva_orden, despachador, oper
 
     orden = nueva_orden(despachador, asignado_a=operador)
     ejecutar_transicion(orden, operador, "estado:EN_PROCESO")
-    ejecutar_transicion(orden, operador, "estado:CERRADA", comentario="listo")
+    ejecutar_transicion(orden, operador, "estado:OK_OPERADOR", comentario="listo")
+    ejecutar_transicion(orden, despachador, "estado:CERRADA", comentario="en SIPREC")
     db.session.commit()
 
     with pytest.raises(DatosInvalidos, match="cerrado"):

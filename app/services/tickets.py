@@ -11,8 +11,11 @@ from flask import current_app
 
 from app.extensions import db
 from app.models.base import (
+    MAX_DIGITOS_IDENTIFICADOR,
+    MIN_DIGITOS_IDENTIFICADOR,
     ahora,
     identificador_valido,
+    normalizar_direccion,
     normalizar_identificador,
     normalizar_telefono,
     telefono_valido,
@@ -20,6 +23,7 @@ from app.models.base import (
 from app.models.comentario import Comentario
 from app.models.contador import siguiente_folio
 from app.models.enums import (
+    CategoriaInterrupcion,
     Dependencia,
     EstadoInterrupcion,
     EstadoOrden,
@@ -32,7 +36,7 @@ from app.models.interrupcion import Interrupcion
 from app.models.orden import OrdenTrabajo
 from app.services import notificaciones as notif
 from app.services import storage
-from app.services.estados import TransicionInvalida
+from app.services.estados import TransicionInvalida, validar_destinatario
 
 
 class DatosInvalidos(Exception):
@@ -175,11 +179,26 @@ def reemplazar_foto(ticket, usuario, cual: str, archivo) -> str:
 # ---------------------------------------------------------------------------
 # Creacion
 # ---------------------------------------------------------------------------
-def _validar_comunes(identificador: str, cliente: str, titulo: str, telefono: str | None) -> str:
-    identificador = normalizar_identificador(identificador)
-    if not identificador_valido(identificador):
+def _validar_comunes(
+    identificador: str,
+    cliente: str,
+    titulo: str,
+    telefono: str | None,
+    *,
+    exige_identificador: bool = True,
+) -> str | None:
+    """Valida lo comun a los dos tipos y devuelve el identificador limpio.
+
+    `exige_identificador` es False en los sitios wifi, que no vienen del
+    sistema externo. Si aun asi llega uno, se valida igual.
+    """
+    identificador = normalizar_identificador(identificador) or None
+    if identificador is None and not exige_identificador:
+        pass
+    elif not identificador_valido(identificador):
         raise DatosInvalidos(
-            "El identificador debe tener dos letras y seis digitos, por ejemplo ED123456."
+            "El identificador debe tener dos letras y despues solo digitos "
+            f"(hasta {MAX_DIGITOS_IDENTIFICADOR}), por ejemplo ED1234."
         )
     if not (cliente or "").strip():
         raise DatosInvalidos("El nombre del cliente es obligatorio.")
@@ -199,22 +218,44 @@ def _validar_telefono(telefono: str | None) -> str | None:
     return normalizar_telefono(telefono)
 
 
-def actualizar_telefono(ticket, usuario, telefono: str | None) -> None:
-    """Permite completar o corregir el telefono despues de crear el ticket."""
+def actualizar_contacto(
+    ticket, usuario, telefono: str | None = None, direccion: str | None = None
+) -> None:
+    """Completa o corrige el telefono y la direccion despues de crear.
+
+    Cada campo deja su propia linea en el historial, y si ninguno cambia no se
+    escribe nada.
+    """
     if not usuario.tiene_alguno(RolUsuario.ADMIN, RolUsuario.DESPACHADOR):
-        raise DatosInvalidos("Solo un despachador o un administrador puede cambiar el telefono.")
-    limpio = _validar_telefono(telefono)
-    if limpio == ticket.telefono_contacto:
-        return
-    anterior = ticket.telefono_contacto
-    ticket.telefono_contacto = limpio
-    registrar_historial(ticket, usuario, "telefono_contacto", anterior, limpio)
-    db.session.commit()
+        raise DatosInvalidos(
+            "Solo un despachador o un administrador puede cambiar los datos de contacto."
+        )
+    nuevos = {
+        "telefono_contacto": _validar_telefono(telefono),
+        "direccion": normalizar_direccion(direccion),
+    }
+
+    cambios = 0
+    for campo, nuevo in nuevos.items():
+        anterior = getattr(ticket, campo)
+        if nuevo == anterior:
+            continue
+        setattr(ticket, campo, nuevo)
+        registrar_historial(ticket, usuario, campo, anterior, nuevo)
+        cambios += 1
+
+    if cambios:
+        db.session.commit()
 
 
 def _asignar_en_creacion(ticket, usuario, asignado_a, estado_destino, estado_previo) -> None:
-    if not asignado_a.tiene_rol(RolUsuario.OPERADOR) or not asignado_a.activo:
-        raise DatosInvalidos("El destinatario debe ser un operador activo.")
+    # Mismo criterio que al asignar desde el tablero (una orden solo va a un
+    # operador; una interrupcion de sitio wifi tambien al tecnico de wifi),
+    # pero el formulario de creacion reporta sus errores con DatosInvalidos.
+    try:
+        validar_destinatario(ticket, asignado_a)
+    except TransicionInvalida as exc:
+        raise DatosInvalidos(str(exc)) from None
     ticket.asignado_a_id = asignado_a.id
     ticket.asignado_en = ahora()
     ticket.estado = estado_destino
@@ -234,6 +275,7 @@ def crear_orden(
     telefono_contacto: str | None = None,
     descripcion: str = "",
     prioridad: Prioridad | str = Prioridad.MEDIA,
+    direccion: str | None = None,
     foto_anverso=None,
     foto_reverso=None,
     asignado_a=None,
@@ -260,6 +302,7 @@ def crear_orden(
         identificador_externo=identificador,
         nombre_cliente=nombre_cliente.strip(),
         telefono_contacto=normalizar_telefono(telefono_contacto),
+        direccion=normalizar_direccion(direccion),
         titulo=titulo.strip(),
         descripcion=(descripcion or "").strip(),
         prioridad=prioridad,
@@ -284,25 +327,42 @@ def crear_orden(
 def crear_interrupcion(
     usuario,
     *,
-    identificador_externo: str,
+    identificador_externo: str = "",
     nombre_cliente: str,
     titulo: str,
     telefono_contacto: str | None = None,
     descripcion: str = "",
     prioridad: Prioridad | str = Prioridad.MEDIA,
+    categoria: CategoriaInterrupcion | str = CategoriaInterrupcion.ENLACE_CLIENTE,
+    direccion: str | None = None,
     foto=None,
     asignado_a=None,
 ) -> Interrupcion:
     """Crea una interrupcion. La foto es obligatoria.
 
-    La dependencia NO se define aqui: nace como "por diagnosticar" y la fija
-    el operador cuando revisa.
+    La categoria SI se define aqui (enlace de cliente o sitio wifi): el
+    despachador la necesita para saber a quien se la entrega. La dependencia
+    no: nace como "por diagnosticar" y la fija quien la revisa.
+
+    Las de sitio wifi no exigen identificador externo, porque no vienen de
+    ningun sistema externo.
     """
-    identificador = _validar_comunes(
-        identificador_externo, nombre_cliente, titulo, telefono_contacto
-    )
     if isinstance(prioridad, str):
         prioridad = Prioridad.desde_nombre(prioridad) or Prioridad.MEDIA
+    if isinstance(categoria, str):
+        categoria = (
+            CategoriaInterrupcion.desde_nombre(categoria)
+            or CategoriaInterrupcion.ENLACE_CLIENTE
+        )
+
+    identificador = _validar_comunes(
+        identificador_externo,
+        nombre_cliente,
+        titulo,
+        telefono_contacto,
+        # Un sitio wifi no tiene identificador del sistema externo.
+        exige_identificador=categoria is not CategoriaInterrupcion.SITIO_WIFI,
+    )
 
     folio = siguiente_folio(TipoTicket.INTERRUPCION, ahora().year)
     clave = _subir_si_hay(foto, f"interrupciones/{folio}/foto")
@@ -312,10 +372,12 @@ def crear_interrupcion(
         identificador_externo=identificador,
         nombre_cliente=nombre_cliente.strip(),
         telefono_contacto=normalizar_telefono(telefono_contacto),
+        direccion=normalizar_direccion(direccion),
         titulo=titulo.strip(),
         descripcion=(descripcion or "").strip(),
         prioridad=prioridad,
         estado=EstadoInterrupcion.NUEVA,
+        categoria=categoria,
         dependencia=None,
         creado_por_id=usuario.id,
         foto_key=clave,
@@ -342,10 +404,7 @@ def reasignar(ticket, usuario, nuevo_operador) -> None:
         raise TransicionInvalida("Solo un despachador o un administrador puede reasignar.")
     if not ticket.abierto:
         raise TransicionInvalida("No se puede reasignar un ticket cerrado.")
-    if nuevo_operador is None or not nuevo_operador.tiene_rol(RolUsuario.OPERADOR):
-        raise TransicionInvalida("El destinatario debe ser un operador activo.")
-    if not nuevo_operador.activo:
-        raise TransicionInvalida("El destinatario debe ser un operador activo.")
+    validar_destinatario(ticket, nuevo_operador)
     if ticket.asignado_a_id == nuevo_operador.id:
         return
 
@@ -358,7 +417,45 @@ def reasignar(ticket, usuario, nuevo_operador) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Clasificacion de dependencia (solo el operador asignado, al diagnosticar)
+# Categoria de la interrupcion (despachador: decide quien puede recibirla)
+# ---------------------------------------------------------------------------
+def actualizar_categoria(interrupcion, usuario, categoria) -> None:
+    """Corrige la categoria de una interrupcion ya creada."""
+    if isinstance(categoria, str):
+        categoria = CategoriaInterrupcion.desde_nombre(categoria)
+    if categoria is None:
+        raise DatosInvalidos("Selecciona una categoria valida.")
+    if not usuario.tiene_alguno(RolUsuario.ADMIN, RolUsuario.DESPACHADOR):
+        raise TransicionInvalida(
+            "Solo un despachador o un administrador cambia la categoria."
+        )
+    if not interrupcion.abierto:
+        raise TransicionInvalida("La interrupcion ya esta cerrada.")
+    if categoria is interrupcion.categoria:
+        return
+
+    # Si la tiene un tecnico de wifi, dejar de ser de sitio wifi lo dejaria con
+    # un ticket que no le corresponde. A un asignado inactivo no se le toma en
+    # cuenta: no puede trabajar nada, y lo que toca ahi es reasignar.
+    if interrupcion.asignado_a is not None and interrupcion.asignado_a.activo:
+        try:
+            validar_destinatario(
+                interrupcion, interrupcion.asignado_a, categoria=categoria
+            )
+        except TransicionInvalida:
+            raise TransicionInvalida(
+                f"{interrupcion.asignado_a.nombre_completo} no se puede quedar con una "
+                f"interrupcion de {categoria.etiqueta.lower()}: reasignala primero."
+            ) from None
+
+    anterior = interrupcion.categoria.etiqueta
+    interrupcion.categoria = categoria
+    registrar_historial(interrupcion, usuario, "categoria", anterior, categoria.etiqueta)
+    db.session.commit()
+
+
+# ---------------------------------------------------------------------------
+# Clasificacion de dependencia (solo quien la tiene asignada, al diagnosticar)
 # ---------------------------------------------------------------------------
 def clasificar_dependencia(interrupcion, usuario, dependencia) -> None:
     if isinstance(dependencia, str):
@@ -367,10 +464,11 @@ def clasificar_dependencia(interrupcion, usuario, dependencia) -> None:
         raise DatosInvalidos("Selecciona una dependencia valida.")
 
     permitido = usuario.tiene_rol(RolUsuario.ADMIN) or (
-        usuario.tiene_rol(RolUsuario.OPERADOR) and interrupcion.asignado_a_id == usuario.id
+        usuario.tiene_alguno(RolUsuario.OPERADOR, RolUsuario.TECNICO_WIFI)
+        and interrupcion.asignado_a_id == usuario.id
     )
     if not permitido:
-        raise TransicionInvalida("Solo el operador asignado clasifica la dependencia.")
+        raise TransicionInvalida("Solo quien la tiene asignada clasifica la dependencia.")
     if not interrupcion.abierto:
         raise TransicionInvalida("La interrupcion ya esta cerrada.")
     if dependencia is interrupcion.dependencia:

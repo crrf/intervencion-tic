@@ -35,7 +35,8 @@
     {% if puede_gestionar() %}
       <div class="solo-movil menu-crear">
         <a href="{{ url_for('ordenes.nueva') }}">+ Nueva orden de trabajo</a>
-        <a href="{{ url_for('interrupciones.nueva') }}">+ Nueva interrupcion</a>
+        <a href="{{ url_for('interrupciones.nueva') }}">+ Nueva interrupcion de enlace</a>
+        <a href="{{ url_for('interrupciones.nueva_wifi') }}">+ Nueva interrupcion de sitio wifi</a>
       </div>
     {% endif %}
     {% if not solo_fibra %}
@@ -61,9 +62,22 @@
   </nav>
 
   <div class="derecha" x-data="{ abierto: false }">
+    {# Un solo boton con menu: tres sueltos no caben junto a los enlaces y la
+       barra acababa desbordandose. Las tres opciones siguen a un clic, y
+       cada listado ofrece ademas su propio boton. #}
     {% if puede_gestionar() %}
-      <a class="btn btn-sm no-movil" href="{{ url_for('ordenes.nueva') }}">+ Orden</a>
-      <a class="btn btn-sm no-movil" href="{{ url_for('interrupciones.nueva') }}">+ Interrupcion</a>
+      <div class="menu-nuevo" x-data="{ nuevo: false }"
+           @keydown.escape.window="nuevo = false">
+        <button class="btn btn-sm" type="button" :aria-expanded="nuevo"
+                aria-haspopup="true" @click="nuevo = !nuevo"
+                title="Crear un ticket">+<span class="etiqueta-nuevo"> Nuevo</span></button>
+        <div class="desplegable" x-show="nuevo" x-cloak
+             @click.outside="nuevo = false" @click="nuevo = false">
+          <a href="{{ url_for('ordenes.nueva') }}">Orden de trabajo</a>
+          <a href="{{ url_for('interrupciones.nueva') }}">Interrupcion de enlace</a>
+          <a href="{{ url_for('interrupciones.nueva_wifi') }}">Interrupcion de sitio wifi</a>
+        </div>
+      </div>
     {% endif %}
 
     <button class="campana" type="button" title="Notificaciones"

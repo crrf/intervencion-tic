@@ -17,19 +17,43 @@ from app.services import tickets as servicio
 from app.services.estados import TransicionInvalida, ejecutar_transicion
 
 
-def operadores_activos() -> list[Usuario]:
-    """Todos los operadores activos, incluidos los que ademas son despachadores."""
+def _activos_con_alguno(*roles: RolUsuario) -> list[Usuario]:
+    """Usuarios activos que tienen al menos uno de esos roles, sin repetir."""
     return list(
         db.session.execute(
             select(Usuario)
             .join(UsuarioRol, UsuarioRol.usuario_id == Usuario.id)
-            .where(UsuarioRol.rol == RolUsuario.OPERADOR, Usuario.activo.is_(True))
+            .where(UsuarioRol.rol.in_(roles), Usuario.activo.is_(True))
             .order_by(Usuario.nombre_completo)
         )
         .scalars()
         .unique()
         .all()
     )
+
+
+def operadores_activos() -> list[Usuario]:
+    """Todos los operadores activos, incluidos los que ademas son despachadores."""
+    return _activos_con_alguno(RolUsuario.OPERADOR)
+
+
+def tecnicos_wifi_activos() -> list[Usuario]:
+    """Los tecnicos de wifi, que son los unicos que reciben sitios wifi."""
+    return _activos_con_alguno(RolUsuario.TECNICO_WIFI)
+
+
+def destinatarios_interrupcion() -> list[Usuario]:
+    """Todos los que pueden recibir alguna interrupcion."""
+    return _activos_con_alguno(RolUsuario.OPERADOR, RolUsuario.TECNICO_WIFI)
+
+
+def destinatarios_para(ticket) -> list[Usuario]:
+    """Candidatos a recibir ESTE ticket, segun su tipo y su categoria."""
+    from app.models.interrupcion import Interrupcion
+
+    if isinstance(ticket, Interrupcion) and ticket.es_sitio_wifi:
+        return destinatarios_interrupcion()
+    return operadores_activos()
 
 
 def _usuario_del_form(campo: str = "asignado_a_id") -> Usuario | None:
@@ -52,6 +76,7 @@ def mover(ticket):
             dependencia=request.form.get("dependencia") or None,
             asignado_a=_usuario_del_form(),
             telefono_contacto=request.form.get("telefono_contacto"),
+            direccion=request.form.get("direccion"),
         )
         db.session.commit()
         flash(f"{ticket.folio}: {transicion.etiqueta.lower()}.", "ok")
@@ -84,13 +109,16 @@ def reasignar(ticket):
     return redirect(ticket.url_detalle)
 
 
-def cambiar_telefono(ticket):
-    """Completa o corrige el telefono de contacto despues de crear el ticket."""
+def cambiar_contacto(ticket):
+    """Completa o corrige el telefono y la direccion despues de crear."""
     try:
-        servicio.actualizar_telefono(
-            ticket, current_user, request.form.get("telefono_contacto")
+        servicio.actualizar_contacto(
+            ticket,
+            current_user,
+            telefono=request.form.get("telefono_contacto"),
+            direccion=request.form.get("direccion"),
         )
-        flash("Telefono de contacto actualizado.", "ok")
+        flash("Datos de contacto actualizados.", "ok")
     except servicio.DatosInvalidos as exc:
         db.session.rollback()
         flash(str(exc), "error")

@@ -7,7 +7,8 @@
   <div class="acciones">
     <a class="btn" href="{{ url_for('tablero.ver', tipo='interrupciones') }}">Ver en tablero</a>
     {% if puede_gestionar() %}
-      <a class="btn btn-primario" href="{{ url_for('interrupciones.nueva') }}">Nueva interrupcion</a>
+      <a class="btn" href="{{ url_for('interrupciones.nueva_wifi') }}">Nueva de sitio wifi</a>
+      <a class="btn btn-primario" href="{{ url_for('interrupciones.nueva') }}">Nueva de enlace</a>
     {% endif %}
   </div>
 </div>
@@ -25,10 +26,20 @@
         {% for i in interrupciones %}
           <tr>
             <td class="mono nowrap" data-etiqueta="Folio"><a href="{{ i.url_detalle }}">{{ i.folio }}</a></td>
-            <td class="mono" data-etiqueta="Identificador">{{ i.identificador_externo }}</td>
-            <td data-etiqueta="Cliente">{{ i.nombre_cliente }}</td>
+            <td class="mono" data-etiqueta="Identificador">{{ i.identificador_externo or "-" }}</td>
+            <td data-etiqueta="Cliente">
+              {{ i.nombre_cliente }}
+              {% if i.direccion %}
+                <div class="pequeno tenue">{{ i.direccion | truncate(70) }}</div>
+              {% endif %}
+            </td>
             <td data-etiqueta="Titulo">{{ i.titulo }}</td>
-            <td class="pequeno" data-etiqueta="Dependencia">{{ i.dependencia.etiqueta if i.dependencia else "Por diagnosticar" }}</td>
+            <td class="pequeno" data-etiqueta="Dependencia">
+              {{ i.dependencia.etiqueta if i.dependencia else "Por diagnosticar" }}
+              {% if i.es_sitio_wifi %}
+                <br><span class="insignia {{ i.categoria | color_categoria }}">{{ i.categoria.etiqueta }}</span>
+              {% endif %}
+            </td>
             <td data-etiqueta="Estado"><span class="insignia {{ i.estado | color_estado }}">{{ i.estado.etiqueta }}</span></td>
             <td data-etiqueta="Fibra">
               {% if i.estado_fibra %}
