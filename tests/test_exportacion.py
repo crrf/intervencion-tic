@@ -30,9 +30,9 @@ def test_la_cabecera_trae_todas_las_columnas(cliente, despachador):
     entrar(cliente, despachador)
     _, texto = descargar(cliente, "/buscar/csv")
     cabecera = filas(texto)[0].split(";")
-    assert cabecera[:8] == [
+    assert cabecera[:9] == [
         "Folio", "Identificador", "Tipo", "Cliente", "Telefono de contacto",
-        "Titulo", "Prioridad", "Categoria",
+        "Direccion", "Titulo", "Prioridad", "Categoria",
     ]
     assert "Dependencia" in cabecera
     assert "Tiempo de resolucion" in cabecera

@@ -35,6 +35,12 @@ def identificador_valido(valor: str | None) -> bool:
     return bool(PATRON_IDENTIFICADOR.match(normalizar_identificador(valor)))
 
 
+def normalizar_direccion(valor: str | None) -> str | None:
+    """Colapsa espacios y saltos de linea. Vacia devuelve None: es opcional."""
+    limpio = " ".join((valor or "").split())
+    return limpio or None
+
+
 def normalizar_telefono(valor: str | None) -> str | None:
     """Limpia el telefono. Vacio devuelve None: el campo es opcional."""
     limpio = " ".join((valor or "").split())
@@ -63,8 +69,9 @@ class TicketMixin:
     folio = db.Column(db.String(24), unique=True, nullable=False, index=True)
     identificador_externo = db.Column(db.String(20), nullable=False, index=True)
     nombre_cliente = db.Column(db.String(160), nullable=False)
-    # Opcional pero recomendado: le ahorra al operador una vuelta al sitio.
+    # Opcionales pero recomendados: le ahorran al operador una vuelta al sitio.
     telefono_contacto = db.Column(db.String(40))
+    direccion = db.Column(db.String(240))
     titulo = db.Column(db.String(200), nullable=False)
     descripcion = db.Column(db.Text, nullable=False, default="")
     prioridad = db.Column(

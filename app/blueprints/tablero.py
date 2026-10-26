@@ -188,6 +188,7 @@ def mover(tipo: str, ticket_id: int):
             dependencia=request.form.get("dependencia") or None,
             asignado_a=asignado,
             telefono_contacto=request.form.get("telefono_contacto"),
+            direccion=request.form.get("direccion"),
         )
         db.session.commit()
     except (TransicionInvalida, DatosInvalidos) as exc:

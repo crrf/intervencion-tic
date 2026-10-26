@@ -6,7 +6,7 @@ import pytest
 from app.extensions import db
 from app.models.base import normalizar_telefono, telefono_valido
 from app.services.estados import ejecutar_transicion
-from app.services.tickets import DatosInvalidos, actualizar_telefono
+from app.services.tickets import DatosInvalidos, actualizar_contacto
 
 CLAVE = "Clave.2026"
 
@@ -67,7 +67,7 @@ def test_el_marcable_conserva_el_prefijo_internacional(nueva_orden, despachador)
 # ---------------------------------------------------------------------------
 def test_el_despachador_lo_completa_despues(nueva_orden, despachador):
     orden = nueva_orden(despachador)
-    actualizar_telefono(orden, despachador, "0424-7654321")
+    actualizar_contacto(orden, despachador, telefono="0424-7654321")
 
     assert orden.telefono_contacto == "0424-7654321"
     cambios = [h for h in orden.historial if h.campo == "telefono_contacto"]
@@ -78,13 +78,13 @@ def test_el_despachador_lo_completa_despues(nueva_orden, despachador):
 def test_un_operador_no_puede_cambiarlo(nueva_orden, despachador, operador):
     orden = nueva_orden(despachador, asignado_a=operador, telefono_contacto="0414-1111111")
     with pytest.raises(DatosInvalidos, match="despachador o un administrador"):
-        actualizar_telefono(orden, operador, "0414-9999999")
+        actualizar_contacto(orden, operador, telefono="0414-9999999")
     assert orden.telefono_contacto == "0414-1111111"
 
 
 def test_guardar_el_mismo_no_ensucia_el_historial(nueva_orden, despachador):
     orden = nueva_orden(despachador, telefono_contacto="0414-1234567")
-    actualizar_telefono(orden, despachador, "0414-1234567")
+    actualizar_contacto(orden, despachador, telefono="0414-1234567")
     assert [h for h in orden.historial if h.campo == "telefono_contacto"] == []
 
 
@@ -147,7 +147,8 @@ def test_la_web_muestra_el_campo_como_recomendado(cliente, despachador):
     cliente.post(
         "/login", data={"usuario": despachador.usuario, "password": CLAVE}
     )
-    for ruta in ("/ordenes/nueva", "/interrupciones/nueva"):
+    rutas = ("/ordenes/nueva", "/interrupciones/nueva", "/interrupciones/nueva-wifi")
+    for ruta in rutas:
         html = cliente.get(ruta).get_data(as_text=True)
         assert 'name="telefono_contacto"' in html, ruta
         assert "Recomendado" in html, ruta

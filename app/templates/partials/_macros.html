@@ -40,6 +40,11 @@
         </a>
       </div>
     {% endif %}
+    {% if t.direccion %}
+      <div class="cliente direccion" title="{{ t.direccion }}">
+        &#128205; {{ t.direccion | truncate(60) }}
+      </div>
+    {% endif %}
 
     {% if t.tipo.name == "INTERRUPCION" %}
       <div class="pie">

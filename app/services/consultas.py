@@ -126,6 +126,7 @@ def cte_tickets(usuario=None, aplicar_visibilidad: bool = True):
         OrdenTrabajo.identificador_externo.label("identificador_externo"),
         OrdenTrabajo.nombre_cliente.label("nombre_cliente"),
         OrdenTrabajo.telefono_contacto.label("telefono_contacto"),
+        OrdenTrabajo.direccion.label("direccion"),
         OrdenTrabajo.titulo.label("titulo"),
         OrdenTrabajo.descripcion.label("descripcion"),
         txt(OrdenTrabajo.prioridad).label("prioridad"),
@@ -148,6 +149,7 @@ def cte_tickets(usuario=None, aplicar_visibilidad: bool = True):
         Interrupcion.identificador_externo,
         Interrupcion.nombre_cliente,
         Interrupcion.telefono_contacto,
+        Interrupcion.direccion,
         Interrupcion.titulo,
         Interrupcion.descripcion,
         txt(Interrupcion.prioridad),
@@ -296,6 +298,7 @@ def _condiciones(t, f: Filtros) -> list:
                 t.c.folio.ilike(patron),
                 t.c.nombre_cliente.ilike(patron),
                 t.c.telefono_contacto.ilike(patron),
+                t.c.direccion.ilike(patron),
                 t.c.titulo.ilike(patron),
                 t.c.descripcion.ilike(patron),
                 exists(

@@ -95,22 +95,30 @@ h3 { font-size: .95rem; }
   align-items: center;
   gap: 1.25rem;
   padding: 0 1.25rem;
-  height: 56px;
+  /* Minimo y no fijo: con alto fijo, cualquier cosa que no quepa se sale
+     por encima del contenido en vez de empujar la barra. */
+  min-height: 56px;
+  flex-wrap: nowrap;
   position: sticky;
   top: 0;
   z-index: 40;
   box-shadow: var(--sombra);
 }
-.barra .marca { font-weight: 700; font-size: 1rem; letter-spacing: .2px; white-space: nowrap; }
+.barra .marca {
+  font-weight: 700; font-size: 1rem; letter-spacing: .2px; white-space: nowrap;
+  flex: 0 0 auto;
+}
 .barra .marca span { opacity: .75; font-weight: 400; font-size: .78rem; display: block; }
-.barra nav { display: flex; gap: .25rem; flex: 1; flex-wrap: wrap; }
+/* Sin envolver: los enlaces caben en una linea o la barra colapsa en
+   hamburguesa, nunca a medias. */
+.barra nav { display: flex; gap: .25rem; flex: 1 1 auto; flex-wrap: nowrap; min-width: 0; }
 .barra nav a {
   color: #fff; opacity: .85; padding: .4rem .7rem;
   border-radius: var(--radio-sm); font-weight: 500;
 }
 .barra nav a:hover { opacity: 1; background: rgba(255, 255, 255, .12); text-decoration: none; }
 .barra nav a.activo { opacity: 1; background: rgba(255, 255, 255, .2); }
-.barra .derecha { display: flex; align-items: center; gap: .75rem; }
+.barra .derecha { display: flex; align-items: center; gap: .75rem; flex: 0 0 auto; }
 .barra .usuario { text-align: right; line-height: 1.2; }
 .barra .usuario strong { display: block; font-size: .85rem; }
 .barra .usuario small { opacity: .75; font-size: .72rem; }
@@ -172,6 +180,10 @@ input:focus, select:focus, textarea:focus {
 textarea { min-height: 84px; resize: vertical; }
 .campo { margin-bottom: .85rem; }
 .campo .ayuda { font-size: .76rem; color: var(--texto-tenue); margin-top: .2rem; }
+.ayuda { font-size: .76rem; color: var(--texto-tenue); }
+/* Un campo que ocupa la fila entera de la rejilla: la direccion no cabe en
+   media columna. */
+.rejilla .campo-ancho { grid-column: 1 / -1; }
 .rejilla { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .rejilla-2 { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
 .obligatorio::after { content: " *"; color: var(--rojo); }
@@ -282,6 +294,8 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .tarjeta .identificador { color: var(--texto-suave); font-size: .76rem; }
 .tarjeta .titulo { margin: .3rem 0; font-weight: 600; font-size: .86rem; }
 .tarjeta .cliente { color: var(--texto-suave); font-size: .78rem; }
+/* La direccion puede ser larga: una linea, sin romper la tarjeta. */
+.tarjeta .direccion { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tarjeta .pie {
   display: flex; align-items: center; justify-content: space-between;
   gap: .4rem; margin-top: .5rem; flex-wrap: wrap;
@@ -379,6 +393,24 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   background: #dc2626; color: #fff; border-radius: 999px;
   font-size: .64rem; font-weight: 700; padding: .05rem .3rem; min-width: 16px;
 }
+/* ---------- Menu de "+ Nuevo" -------------------------------------------- */
+.menu-nuevo { position: relative; flex: 0 0 auto; }
+.menu-nuevo > .btn { white-space: nowrap; }
+.desplegable {
+  position: absolute; top: calc(100% + .4rem); right: 0; z-index: 50;
+  min-width: 240px; padding: .3rem;
+  background: var(--superficie); color: var(--texto);
+  border: 1px solid var(--borde); border-radius: var(--radio);
+  box-shadow: var(--sombra-alta);
+}
+.desplegable a {
+  display: block; padding: .6rem .7rem; border-radius: var(--radio-sm);
+  color: var(--texto); font-size: .88rem; white-space: nowrap;
+}
+.desplegable a:hover, .desplegable a:focus-visible {
+  background: var(--marca-fondo); text-decoration: none;
+}
+
 .panel-notif {
   position: absolute; right: 1rem; top: 58px; width: min(400px, 92vw);
   background: var(--superficie); border: 1px solid var(--borde);
@@ -454,6 +486,56 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .solo-movil { display: none; }
 .hamburguesa { display: none; }
 
+/* ---------- Barra: colapso propio, antes que el resto del diseno --------- */
+/* El contenido de la barra (hasta seis enlaces, el boton de crear, la
+   campana y los datos del usuario) deja de caber mucho antes de los 860 px
+   donde empieza el diseno de telefono. Estos dos cortes son solo de la
+   barra: el resto de la pagina no se toca aqui. */
+@media (max-width: 1249px) {
+  .barra { gap: .75rem; padding: 0 .9rem; }
+  .barra .marca span { display: none; }      /* el subtitulo es lo primero que sobra */
+  .barra .usuario { display: none; }         /* el nombre esta en Mi cuenta */
+  .barra nav a { padding: .4rem .55rem; }
+}
+
+@media (max-width: 1079px) {
+  /* Todo tras el menu: los enlaces ya no caben en una linea. */
+  .barra .no-movil { display: none !important; }
+  .barra .solo-movil { display: block; }
+  .barra .etiqueta-nuevo { display: none; }  /* el boton queda como "+" */
+  .barra .derecha { margin-left: auto; gap: .35rem; }
+
+  .hamburguesa {
+    display: flex; flex-direction: column; justify-content: center; gap: 4px;
+    width: 42px; height: 42px; padding: 0 9px; flex: none;
+    background: none; border: none; cursor: pointer;
+  }
+  .hamburguesa span {
+    display: block; height: 2px; width: 100%; background: #fff; border-radius: 2px;
+  }
+
+  .barra nav {
+    display: none;
+    position: fixed; inset: 56px 0 0 0;
+    flex-direction: column; gap: .15rem; flex-wrap: nowrap;
+    background: var(--marca);
+    padding: .6rem; overflow-y: auto; z-index: 45;
+  }
+  .barra nav.desplegado { display: flex; }
+  .barra nav a { padding: .9rem 1rem; font-size: 1rem; opacity: .95; }
+  .barra nav a.activo { background: rgba(255, 255, 255, .22); }
+
+  .menu-crear { margin-bottom: .4rem; padding-bottom: .5rem;
+                border-bottom: 1px solid rgba(255, 255, 255, .25); }
+  .menu-pie { margin-top: .5rem; padding-top: .5rem;
+              border-top: 1px solid rgba(255, 255, 255, .25); }
+  .menu-crear a, .menu-pie a {
+    display: block; color: #fff; opacity: .95;
+    padding: .9rem 1rem; border-radius: var(--radio-sm); font-weight: 500;
+  }
+  .menu-crear a { background: rgba(255, 255, 255, .16); margin-bottom: .3rem; }
+}
+
 /* ---------- Objetivos tactiles ------------------------------------------ */
 /* Con el dedo hace falta altura, no la de un puntero de raton. */
 @media (pointer: coarse) {
@@ -475,42 +557,10 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .no-movil { display: none !important; }
   .solo-movil { display: block; }
 
-  /* ---------- Barra: marca, campana y todo lo demas tras el menu -------- */
-  .barra { height: 52px; padding: 0 .5rem; gap: .5rem; flex-wrap: nowrap; }
+  /* La barra ya colapso en 1079; aqui solo se aprieta para el telefono. */
+  .barra { min-height: 52px; padding: 0 .5rem; gap: .5rem; }
   .barra .marca { font-size: .92rem; color: #fff; }
-  .barra .marca span { display: none; }
-  .barra .derecha { margin-left: auto; gap: .25rem; }
-
-  .hamburguesa {
-    display: flex; flex-direction: column; justify-content: center; gap: 4px;
-    width: 42px; height: 42px; padding: 0 9px; flex: none;
-    background: none; border: none; cursor: pointer;
-  }
-  .hamburguesa span {
-    display: block; height: 2px; width: 100%; background: #fff; border-radius: 2px;
-  }
-
-  /* El menu ocupa la pantalla: enlaces grandes, faciles de acertar. */
-  .barra nav {
-    display: none;
-    position: fixed; inset: 52px 0 0 0;
-    flex-direction: column; gap: .15rem;
-    background: var(--marca);
-    padding: .6rem; overflow-y: auto; z-index: 45;
-  }
-  .barra nav.desplegado { display: flex; }
-  .barra nav a { padding: .9rem 1rem; font-size: 1rem; opacity: .95; }
-  .barra nav a.activo { background: rgba(255, 255, 255, .22); }
-
-  .menu-crear { margin-bottom: .4rem; padding-bottom: .5rem;
-                border-bottom: 1px solid rgba(255, 255, 255, .25); }
-  .menu-pie { margin-top: .5rem; padding-top: .5rem;
-              border-top: 1px solid rgba(255, 255, 255, .25); }
-  .menu-crear a, .menu-pie a {
-    display: block; color: #fff; opacity: .95;
-    padding: .9rem 1rem; border-radius: var(--radio-sm); font-weight: 500;
-  }
-  .menu-crear a { background: rgba(255, 255, 255, .16); margin-bottom: .3rem; }
+  .barra nav { inset: 52px 0 0 0; }
 
   /* ---------- Avisos: abajo, donde llega el pulgar y no tapan nada ----- */
   .avisos { top: auto; bottom: .6rem; left: .6rem; right: .6rem; width: auto; }
@@ -519,6 +569,10 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
     position: fixed; top: 52px; left: 0; right: 0; width: auto;
     border-radius: 0; border-left: none; border-right: none; max-height: 75vh;
   }
+
+  /* El menu de crear, a lo ancho: en el pulgar no se acierta un desplegable
+     de 240 px pegado al borde. */
+  .desplegable { position: fixed; top: 52px; left: .5rem; right: .5rem; min-width: 0; }
 
   .contenido { padding: .7rem; }
   h1 { font-size: 1.2rem; }

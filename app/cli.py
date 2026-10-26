@@ -62,6 +62,16 @@ TELEFONOS = [
     "0212-7778899", None, None,  # algunos quedan sin telefono, como en la vida real
 ]
 
+DIRECCIONES = [
+    "Av. Bolivar con calle 5, edificio Centro, piso 2, local 2-A",
+    "Calle Sucre, casa 14, frente a la plaza",
+    "Urbanizacion El Parral, vereda 3, casa 27",
+    "Av. Las Delicias, centro comercial Paseo, local 112",
+    "Sector La Romana, calle principal, galpon 8",
+    "Carretera nacional km 12, entrada de Tocuyito",
+    None, None,  # algunos quedan sin direccion, como en la vida real
+]
+
 MOTIVOS = [
     "Cliente no permitio el acceso al sitio.",
     "Falta material en almacen para completar el trabajo.",
@@ -267,6 +277,7 @@ def seed() -> None:
             identificador_externo=f"ED{random.randint(100000, 999999)}",
             nombre_cliente=random.choice(CLIENTES),
             telefono_contacto=random.choice(TELEFONOS),
+            direccion=random.choice(DIRECCIONES),
             titulo=random.choice(TITULOS_ORDEN),
             descripcion="Trabajo programado reportado por el centro de gestion.",
             prioridad=random.choice(list(Prioridad)),
@@ -353,6 +364,7 @@ def seed() -> None:
             identificador_externo=f"FD{random.randint(100000, 999999)}",
             nombre_cliente=random.choice(CLIENTES),
             telefono_contacto=random.choice(TELEFONOS),
+            direccion=random.choice(DIRECCIONES),
             titulo=random.choice(TITULOS_INTERRUPCION),
             descripcion="Reportado por el cliente y confirmado por monitoreo.",
             prioridad=random.choice(list(Prioridad)),

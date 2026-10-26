@@ -58,6 +58,7 @@ def nueva():
                 titulo=request.form.get("titulo", ""),
                 descripcion=request.form.get("descripcion", ""),
                 prioridad=request.form.get("prioridad", Prioridad.MEDIA.name),
+                direccion=request.form.get("direccion"),
                 foto_anverso=request.files.get("foto_anverso"),
                 foto_reverso=request.files.get("foto_reverso"),
                 asignado_a=asignado,
@@ -92,7 +93,7 @@ def detalle(orden_id: int):
         endpoint_mover="ordenes.mover",
         endpoint_comentar="ordenes.comentar",
         endpoint_reasignar="ordenes.reasignar",
-        endpoint_telefono="ordenes.cambiar_telefono",
+        endpoint_contacto="ordenes.cambiar_contacto",
     )
 
 
@@ -122,7 +123,7 @@ def cambiar_foto(orden_id: int, cual: str):
 
 
 
-@bp.post("/<int:orden_id>/telefono")
+@bp.post("/<int:orden_id>/contacto")
 @login_required
-def cambiar_telefono(orden_id: int):
-    return _acciones.cambiar_telefono(_obtener(orden_id))
+def cambiar_contacto(orden_id: int):
+    return _acciones.cambiar_contacto(_obtener(orden_id))

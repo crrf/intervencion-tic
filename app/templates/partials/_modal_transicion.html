@@ -27,7 +27,7 @@
               {% endfor %}
             </select>
           </div>
-          {# El momento de asignar es cuando mas falta le hace al operador. #}
+          {# El momento de asignar es cuando mas falta le hacen al operador. #}
           <div class="campo">
             <label for="m-telefono">
               Telefono de contacto
@@ -38,7 +38,20 @@
             <input type="tel" id="m-telefono" name="telefono_contacto" maxlength="40"
                    value="{{ ticket.telefono_contacto or '' }}"
                    placeholder="0414-1234567" pattern="[0-9+(). -]{7,40}">
-            <div class="ayuda">Opcional. El operador lo vera en la tarjeta y en el detalle.</div>
+          </div>
+          <div class="campo">
+            <label for="m-direccion">
+              Direccion
+              {% if not ticket.direccion %}
+                <span class="insignia azul">Recomendado</span>
+              {% endif %}
+            </label>
+            <input type="text" id="m-direccion" name="direccion" maxlength="240"
+                   value="{{ ticket.direccion or '' }}"
+                   placeholder="Av. Principal, edificio, punto de referencia...">
+            <div class="ayuda">
+              Opcional. Los dos los vera en la tarjeta y en el detalle.
+            </div>
           </div>
         {% endif %}
 

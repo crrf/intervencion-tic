@@ -156,7 +156,7 @@ def test_reasignar_a_nadie_avisa(cliente, nueva_orden, despachador, operador):
 
 
 # ---------------------------------------------------------------------------
-# Telefono de contacto
+# Datos de contacto (telefono y direccion van juntos)
 # ---------------------------------------------------------------------------
 def test_el_despachador_completa_el_telefono(cliente, nueva_orden, despachador):
     orden = nueva_orden(despachador, telefono_contacto=None)
@@ -165,7 +165,7 @@ def test_el_despachador_completa_el_telefono(cliente, nueva_orden, despachador):
 
     entrar(cliente, despachador)
     cliente.post(
-        f"/ordenes/{orden.id}/telefono",
+        f"/ordenes/{orden.id}/contacto",
         data={"telefono_contacto": "0426-9998877"}, follow_redirects=True,
     )
     db.session.refresh(orden)
@@ -178,7 +178,7 @@ def test_un_telefono_invalido_se_rechaza(cliente, nueva_orden, despachador):
 
     entrar(cliente, despachador)
     respuesta = cliente.post(
-        f"/ordenes/{orden.id}/telefono",
+        f"/ordenes/{orden.id}/contacto",
         data={"telefono_contacto": "no-es-telefono"}, follow_redirects=True,
     )
     db.session.refresh(orden)

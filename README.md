@@ -155,6 +155,18 @@ La paleta vive entera en variables CSS, con un juego para el tema claro y otro p
 Los tres grises de texto mantienen entre sí al menos 1.2:1 para que la jerarquía se siga
 leyendo: cumplir el contraste no debería costar que todo se vea del mismo tono.
 
+### Dirección del sitio
+
+Órdenes e interrupciones —las tres puertas de creación— llevan una **dirección**: dónde se hace
+el trabajo, dónde está el servicio caído o dónde está el sitio wifi. No es obligatoria, porque el
+reporte no siempre llega con ella, pero está marcada como *recomendada* y el panel de contacto
+del detalle se resalta mientras falte.
+
+Se ve en la tarjeta del tablero (con el teléfono, para quien va al sitio), en el detalle, en los
+listados y en el CSV; el buscador la incluye en el texto libre, igual que la bandeja de fibra.
+Se puede completar o corregir después desde el detalle, y también al asignar, que es cuando más
+falta hace.
+
 ### Teléfono de contacto del cliente
 
 Órdenes e interrupciones llevan un **teléfono de contacto**: no es obligatorio, pero está marcado

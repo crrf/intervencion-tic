@@ -69,6 +69,16 @@
           </div>
         </div>
         <div class="dato">
+          <div class="etiqueta">Direccion</div>
+          <div class="valor">
+            {% if ticket.direccion %}
+              {{ ticket.direccion }}
+            {% else %}
+              <span class="tenue">Sin registrar</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="dato">
           <div class="etiqueta">Creado por</div>
           <div class="valor">{{ ticket.creado_por.nombre_completo }}</div>
         </div>
@@ -251,21 +261,29 @@
     {% endif %}
 
     {% if puede_gestionar() and ticket.abierto %}
-      <div class="panel {{ 'destacado' if not ticket.telefono_contacto }}">
-        <h2>Telefono de contacto</h2>
-        <form method="post" action="{{ url_for(endpoint_telefono, **ident) }}">
+      <div class="panel {{ 'destacado' if not ticket.telefono_contacto or not ticket.direccion }}">
+        <h2>Datos de contacto</h2>
+        <form method="post" action="{{ url_for(endpoint_contacto, **ident) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="campo">
-            <input type="tel" name="telefono_contacto" maxlength="40"
+            <label for="d-telefono">Telefono</label>
+            <input type="tel" id="d-telefono" name="telefono_contacto" maxlength="40"
                    value="{{ ticket.telefono_contacto or '' }}"
                    placeholder="0414-1234567" pattern="[0-9+(). -]{7,40}">
-            {% if not ticket.telefono_contacto %}
-              <div class="ayuda">
-                Recomendado: sin telefono, el operador no puede coordinar el acceso al sitio.
-              </div>
-            {% endif %}
           </div>
-          <button class="btn btn-bloque" type="submit">Guardar telefono</button>
+          <div class="campo">
+            <label for="d-direccion">Direccion</label>
+            <input type="text" id="d-direccion" name="direccion" maxlength="240"
+                   value="{{ ticket.direccion or '' }}"
+                   placeholder="Av. Principal, edificio, punto de referencia...">
+          </div>
+          {% if not ticket.telefono_contacto or not ticket.direccion %}
+            <div class="ayuda mb">
+              Recomendados: sin telefono ni direccion, quien va al sitio no puede
+              coordinar el acceso ni sabe adonde llegar.
+            </div>
+          {% endif %}
+          <button class="btn btn-bloque" type="submit">Guardar contacto</button>
         </form>
       </div>
     {% endif %}

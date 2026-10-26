@@ -27,7 +27,12 @@
           <tr>
             <td class="mono nowrap" data-etiqueta="Folio"><a href="{{ i.url_detalle }}">{{ i.folio }}</a></td>
             <td class="mono" data-etiqueta="Identificador">{{ i.identificador_externo }}</td>
-            <td data-etiqueta="Cliente">{{ i.nombre_cliente }}</td>
+            <td data-etiqueta="Cliente">
+              {{ i.nombre_cliente }}
+              {% if i.direccion %}
+                <div class="pequeno tenue">{{ i.direccion | truncate(70) }}</div>
+              {% endif %}
+            </td>
             <td data-etiqueta="Titulo">{{ i.titulo }}</td>
             <td class="pequeno" data-etiqueta="Dependencia">
               {{ i.dependencia.etiqueta if i.dependencia else "Por diagnosticar" }}

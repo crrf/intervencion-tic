@@ -6,8 +6,12 @@
   <h1>Tablero</h1>
   <div class="acciones">
     {% if puede_gestionar() %}
-      <a class="btn" href="{{ url_for('ordenes.nueva') }}">Nueva orden</a>
-      <a class="btn" href="{{ url_for('interrupciones.nueva') }}">Nueva interrupcion</a>
+      {% if tipo == "ordenes" %}
+        <a class="btn" href="{{ url_for('ordenes.nueva') }}">Nueva orden</a>
+      {% else %}
+        <a class="btn" href="{{ url_for('interrupciones.nueva') }}">Nueva de enlace</a>
+        <a class="btn" href="{{ url_for('interrupciones.nueva_wifi') }}">Nueva de sitio wifi</a>
+      {% endif %}
     {% endif %}
     <button class="btn" type="button"
             hx-get="{{ url_for('tablero.columnas', tipo=tipo, mios='1' if solo_mios else '', prioridad=prioridad) }}"

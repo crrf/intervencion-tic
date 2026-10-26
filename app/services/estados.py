@@ -369,6 +369,7 @@ def ejecutar_transicion(
     dependencia: Dependencia | str | None = None,
     asignado_a=None,
     telefono_contacto: str | None = None,
+    direccion: str | None = None,
 ) -> Transicion:
     """Aplica una transicion validando permisos y datos obligatorios.
 
@@ -376,7 +377,11 @@ def ejecutar_transicion(
     estado, el comentario, el historial y las notificaciones formen una sola
     transaccion.
     """
-    from app.models.base import normalizar_telefono, telefono_valido
+    from app.models.base import (
+        normalizar_direccion,
+        normalizar_telefono,
+        telefono_valido,
+    )
     from app.services import notificaciones as notif
     from app.services.tickets import agregar_comentario, registrar_historial
 
@@ -416,6 +421,15 @@ def ejecutar_transicion(
         if asignado_a is None:
             raise TransicionInvalida("Debes elegir el operador al que se asigna el ticket.")
         validar_destinatario(ticket, asignado_a)
+
+    # --- Direccion del sitio ----------------------------------------------
+    # Igual que el telefono: opcional, pero es al asignar cuando mas falta le
+    # hace a quien tiene que ir al sitio.
+    if direccion is not None and direccion.strip():
+        limpia = normalizar_direccion(direccion)
+        if limpia != ticket.direccion:
+            registrar_historial(ticket, usuario, "direccion", ticket.direccion, limpia)
+            ticket.direccion = limpia
 
     # --- Telefono de contacto ---------------------------------------------
     # Opcional, pero es al asignar cuando mas falta le hace al operador, asi

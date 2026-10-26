@@ -225,7 +225,7 @@ def test_poner_la_categoria_que_ya_tiene_no_hace_nada(
 def test_el_telefono_igual_no_escribe_historial(app, nueva_orden, despachador):
     orden = nueva_orden(despachador, telefono_contacto="0414-1234567")
     db.session.commit()
-    servicio.actualizar_telefono(orden, despachador, "0414-1234567")
+    servicio.actualizar_contacto(orden, despachador, telefono="0414-1234567")
     assert [h for h in orden.historial if h.campo == "telefono_contacto"] == []
 
 
@@ -271,7 +271,7 @@ def test_se_corrige_el_telefono_de_una_interrupcion_por_http(
 
     entrar(cliente, despachador)
     cliente.post(
-        f"/interrupciones/{inter.id}/telefono",
+        f"/interrupciones/{inter.id}/contacto",
         data={"telefono_contacto": "0212-7778899"}, follow_redirects=True,
     )
     db.session.refresh(inter)

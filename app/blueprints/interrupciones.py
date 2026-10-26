@@ -64,6 +64,7 @@ def _crear_desde_formulario(categoria: CategoriaInterrupcion):
             descripcion=request.form.get("descripcion", ""),
             prioridad=request.form.get("prioridad", Prioridad.MEDIA.name),
             categoria=categoria,
+            direccion=request.form.get("direccion"),
             foto=request.files.get("foto"),
             asignado_a=asignado,
         )
@@ -126,7 +127,7 @@ def detalle(interrupcion_id: int):
         endpoint_mover="interrupciones.mover",
         endpoint_comentar="interrupciones.comentar",
         endpoint_reasignar="interrupciones.reasignar",
-        endpoint_telefono="interrupciones.cambiar_telefono",
+        endpoint_contacto="interrupciones.cambiar_contacto",
     )
 
 
@@ -182,7 +183,7 @@ def cambiar_categoria(interrupcion_id: int):
     return redirect(inter.url_detalle)
 
 
-@bp.post("/<int:interrupcion_id>/telefono")
+@bp.post("/<int:interrupcion_id>/contacto")
 @login_required
-def cambiar_telefono(interrupcion_id: int):
-    return _acciones.cambiar_telefono(_obtener(interrupcion_id))
+def cambiar_contacto(interrupcion_id: int):
+    return _acciones.cambiar_contacto(_obtener(interrupcion_id))

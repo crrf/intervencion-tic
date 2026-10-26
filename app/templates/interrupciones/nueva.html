@@ -58,6 +58,15 @@
           {% endfor %}
         </select>
       </div>
+      <div class="campo campo-ancho">
+        <label for="direccion">
+          Direccion <span class="insignia azul">Recomendado</span>
+        </label>
+        <input type="text" id="direccion" name="direccion"
+               value="{ datos.direccion or '' }" maxlength="240"
+               placeholder="Av. Principal, edificio, piso, punto de referencia...">
+        <div class="ayuda">Donde esta el servicio caido. Sin ella el operador tiene que llamar para que se lo expliquen.</div>
+      </div>
       <div class="campo">
         <label for="asignado_a_id">Asignar a (opcional)</label>
         <select id="asignado_a_id" name="asignado_a_id">

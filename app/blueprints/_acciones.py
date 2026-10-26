@@ -76,6 +76,7 @@ def mover(ticket):
             dependencia=request.form.get("dependencia") or None,
             asignado_a=_usuario_del_form(),
             telefono_contacto=request.form.get("telefono_contacto"),
+            direccion=request.form.get("direccion"),
         )
         db.session.commit()
         flash(f"{ticket.folio}: {transicion.etiqueta.lower()}.", "ok")
@@ -108,13 +109,16 @@ def reasignar(ticket):
     return redirect(ticket.url_detalle)
 
 
-def cambiar_telefono(ticket):
-    """Completa o corrige el telefono de contacto despues de crear el ticket."""
+def cambiar_contacto(ticket):
+    """Completa o corrige el telefono y la direccion despues de crear."""
     try:
-        servicio.actualizar_telefono(
-            ticket, current_user, request.form.get("telefono_contacto")
+        servicio.actualizar_contacto(
+            ticket,
+            current_user,
+            telefono=request.form.get("telefono_contacto"),
+            direccion=request.form.get("direccion"),
         )
-        flash("Telefono de contacto actualizado.", "ok")
+        flash("Datos de contacto actualizados.", "ok")
     except servicio.DatosInvalidos as exc:
         db.session.rollback()
         flash(str(exc), "error")

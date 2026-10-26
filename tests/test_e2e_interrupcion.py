@@ -280,12 +280,14 @@ def test_el_flujo_de_wifi_fija_la_categoria_aunque_la_manden_cambiada(
 
 
 def test_las_tres_puertas_estan_en_la_barra(cliente, despachador):
+    """Las tres viven en el menu de "+ Nuevo" y en el menu de movil."""
     entrar(cliente, despachador)
     barra = cliente.get("/tablero").get_data(as_text=True)
     assert "/ordenes/nueva" in barra
     assert "/interrupciones/nueva" in barra
     assert "/interrupciones/nueva-wifi" in barra
-    assert "+ Sitio wifi" in barra
+    assert "menu-nuevo" in barra
+    assert "Interrupcion de sitio wifi" in barra
 
 
 def test_el_flujo_de_wifi_es_solo_para_gestion(cliente, operador, tecnico_wifi):

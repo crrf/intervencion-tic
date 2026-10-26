@@ -15,6 +15,7 @@ from app.models.base import (
     MIN_DIGITOS_IDENTIFICADOR,
     ahora,
     identificador_valido,
+    normalizar_direccion,
     normalizar_identificador,
     normalizar_telefono,
     telefono_valido,
@@ -204,17 +205,34 @@ def _validar_telefono(telefono: str | None) -> str | None:
     return normalizar_telefono(telefono)
 
 
-def actualizar_telefono(ticket, usuario, telefono: str | None) -> None:
-    """Permite completar o corregir el telefono despues de crear el ticket."""
+def actualizar_contacto(
+    ticket, usuario, telefono: str | None = None, direccion: str | None = None
+) -> None:
+    """Completa o corrige el telefono y la direccion despues de crear.
+
+    Cada campo deja su propia linea en el historial, y si ninguno cambia no se
+    escribe nada.
+    """
     if not usuario.tiene_alguno(RolUsuario.ADMIN, RolUsuario.DESPACHADOR):
-        raise DatosInvalidos("Solo un despachador o un administrador puede cambiar el telefono.")
-    limpio = _validar_telefono(telefono)
-    if limpio == ticket.telefono_contacto:
-        return
-    anterior = ticket.telefono_contacto
-    ticket.telefono_contacto = limpio
-    registrar_historial(ticket, usuario, "telefono_contacto", anterior, limpio)
-    db.session.commit()
+        raise DatosInvalidos(
+            "Solo un despachador o un administrador puede cambiar los datos de contacto."
+        )
+    nuevos = {
+        "telefono_contacto": _validar_telefono(telefono),
+        "direccion": normalizar_direccion(direccion),
+    }
+
+    cambios = 0
+    for campo, nuevo in nuevos.items():
+        anterior = getattr(ticket, campo)
+        if nuevo == anterior:
+            continue
+        setattr(ticket, campo, nuevo)
+        registrar_historial(ticket, usuario, campo, anterior, nuevo)
+        cambios += 1
+
+    if cambios:
+        db.session.commit()
 
 
 def _asignar_en_creacion(ticket, usuario, asignado_a, estado_destino, estado_previo) -> None:
@@ -244,6 +262,7 @@ def crear_orden(
     telefono_contacto: str | None = None,
     descripcion: str = "",
     prioridad: Prioridad | str = Prioridad.MEDIA,
+    direccion: str | None = None,
     foto_anverso=None,
     foto_reverso=None,
     asignado_a=None,
@@ -270,6 +289,7 @@ def crear_orden(
         identificador_externo=identificador,
         nombre_cliente=nombre_cliente.strip(),
         telefono_contacto=normalizar_telefono(telefono_contacto),
+        direccion=normalizar_direccion(direccion),
         titulo=titulo.strip(),
         descripcion=(descripcion or "").strip(),
         prioridad=prioridad,
@@ -301,6 +321,7 @@ def crear_interrupcion(
     descripcion: str = "",
     prioridad: Prioridad | str = Prioridad.MEDIA,
     categoria: CategoriaInterrupcion | str = CategoriaInterrupcion.ENLACE_CLIENTE,
+    direccion: str | None = None,
     foto=None,
     asignado_a=None,
 ) -> Interrupcion:
@@ -329,6 +350,7 @@ def crear_interrupcion(
         identificador_externo=identificador,
         nombre_cliente=nombre_cliente.strip(),
         telefono_contacto=normalizar_telefono(telefono_contacto),
+        direccion=normalizar_direccion(direccion),
         titulo=titulo.strip(),
         descripcion=(descripcion or "").strip(),
         prioridad=prioridad,
